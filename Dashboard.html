@@ -1,0 +1,99 @@
+<div class="dashboard-wrapper">
+  <div class="page-header" style="margin-bottom:20px;">
+    <h1 style="color:var(--primary); margin:0 0 5px 0;">Governance Dashboard</h1>
+    <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Centralized document governance metrics, health analytics, and task control panel.</p>
+  </div>
+
+  <!-- Centralized Governance Metrics Cards (Identical Global Numbers Across All Roles) -->
+  <div class="metrics-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:15px; margin-bottom:25px;">
+    <div class="metric-card" style="background:#fff; padding:15px; border-radius:8px; border-left:4px solid #003A70; border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border);">
+      <div style="font-size:1.8rem; font-weight:bold; color:var(--primary);" id="m-total">0</div>
+      <div style="font-size:0.8rem; color:var(--text-muted);">Total Documents</div>
+    </div>
+    <div class="metric-card" style="background:#fff; padding:15px; border-radius:8px; border-left:4px solid #0284C7; border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border);">
+      <div style="font-size:1.8rem; font-weight:bold; color:#0284C7;" id="m-drafts">0</div>
+      <div style="font-size:0.8rem; color:var(--text-muted);">Draft Documents</div>
+    </div>
+    <div class="metric-card" style="background:#fff; padding:15px; border-radius:8px; border-left:4px solid #F59E0B; border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border);">
+      <div style="font-size:1.8rem; font-weight:bold; color:#F59E0B;" id="m-pending">0</div>
+      <div style="font-size:0.8rem; color:var(--text-muted);">Pending Reviews</div>
+    </div>
+    <div class="metric-card" style="background:#fff; padding:15px; border-radius:8px; border-left:4px solid #0EA5E9; border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border);">
+      <div style="font-size:1.8rem; font-weight:bold; color:#0EA5E9;" id="m-published">0</div>
+      <div style="font-size:0.8rem; color:var(--text-muted);">Published Documents</div>
+    </div>
+    <div class="metric-card" style="background:#fff; padding:15px; border-radius:8px; border-left:4px solid #D97706; border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border);">
+      <div style="font-size:1.8rem; font-weight:bold; color:#D97706;" id="m-pendingFinal">0</div>
+      <div style="font-size:0.8rem; color:var(--text-muted);">Pending Final Approval</div>
+    </div>
+    <div class="metric-card" style="background:#fff; padding:15px; border-radius:8px; border-left:4px solid #10B981; border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border);">
+      <div style="font-size:1.8rem; font-weight:bold; color:#10B981;" id="m-approved">0</div>
+      <div style="font-size:0.8rem; color:var(--text-muted);">Fully Approved</div>
+    </div>
+    <div class="metric-card" style="background:#fff; padding:15px; border-radius:8px; border-left:4px solid #EF4444; border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border);">
+      <div style="font-size:1.8rem; font-weight:bold; color:#EF4444;" id="m-expired">0</div>
+      <div style="font-size:0.8rem; color:var(--text-muted);">Expired / Due Review</div>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px;">
+    <div>
+      <!-- Health Breakdown Card (Identical Numbers Across Roles) -->
+      <div class="panel" style="background:#fff; padding:20px; border-radius:8px; border:1px solid var(--border); margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <h3 style="margin:0; color:var(--primary);">Document Governance Health Breakdown</h3>
+          <span class="badge" id="healthScoreBadge" style="background:#D1FAE5; color:#065F46; padding:6px 12px; font-weight:bold;">Overall Health: 0%</span>
+        </div>
+        <div class="health-breakdown-bar" style="display:flex; height:12px; border-radius:6px; overflow:hidden; background:#E2E8F0; margin-bottom:15px;">
+          <div id="barHealthy" style="background:#10B981; width:0%;"></div>
+          <div id="barAttention" style="background:#F59E0B; width:0%;"></div>
+          <div id="barAction" style="background:#EF4444; width:0%;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-around; text-align:center; font-size:0.85rem;">
+          <div><strong id="cntHealthy" style="color:#10B981; font-size:1.2rem;">0</strong><br>Healthy Docs</div>
+          <div><strong id="cntAttention" style="color:#F59E0B; font-size:1.2rem;">0</strong><br>Attention Needed</div>
+          <div><strong id="cntAction" style="color:#EF4444; font-size:1.2rem;">0</strong><br>Action Required</div>
+        </div>
+      </div>
+
+      <!-- Recent System Activity (STRICTLY ADMIN ONLY) -->
+      <div class="panel" id="panelRecentActivity" style="display:none; background:#fff; padding:20px; border-radius:8px; border:1px solid var(--border);">
+        <h3 style="margin:0 0 15px 0; color:var(--primary);">Recent System Activity (Admin View)</h3>
+        <table class="data-table" id="recentActivityTable">
+          <thead>
+            <tr>
+              <th>Doc ID</th>
+              <th>Action</th>
+              <th>User</th>
+              <th>Role</th>
+              <th>Date & Time</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <!-- My Action Tasks Panel (HIDDEN FOR VIEWER ROLE) -->
+      <div class="panel" id="panelMyActionTasks" style="background:#fff; padding:20px; border-radius:8px; border:1px solid var(--border); margin-bottom:20px;">
+        <h3 style="margin:0 0 15px 0; color:var(--primary);">My Action Tasks</h3>
+        <div style="padding:10px; background:#F8FAFC; border-radius:6px; margin-bottom:8px; border-left:3px solid var(--primary);">
+          <strong>Awaiting My Review:</strong> <span id="t-review">0</span>
+        </div>
+        <div style="padding:10px; background:#F8FAFC; border-radius:6px; margin-bottom:8px; border-left:3px solid #F59E0B;">
+          <strong>Revisions Requested:</strong> <span id="t-revisions">0</span>
+        </div>
+        <div style="padding:10px; background:#F8FAFC; border-radius:6px; border-left:3px solid #EF4444;">
+          <strong>Overdue My Updates:</strong> <span id="t-overdue">0</span>
+        </div>
+      </div>
+
+      <!-- My Pending Notifications Panel -->
+      <div class="panel" style="background:#fff; padding:20px; border-radius:8px; border:1px solid var(--border);">
+        <h3 style="margin:0 0 15px 0; color:var(--primary);">My Pending Notifications</h3>
+        <div id="dashboardNotifList"></div>
+      </div>
+    </div>
+  </div>
+</div>

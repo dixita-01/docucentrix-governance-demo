@@ -1,0 +1,23 @@
+<div class="ai-search-wrapper">
+  <div class="page-header">
+    <h1>Ask DocuCentrix AI</h1>
+    <p>Natural language compliance and process guidance powered by Gemini AI.</p>
+  </div>
+
+  <div class="ai-search-box">
+    <input type="text" id="aiQueryInput" placeholder="e.g., How do I onboard a contractor or manage emergency access?" onkeydown="if(event.key==='Enter') executeAISearch()">
+    <button class="btn btn-primary" onclick="executeAISearch()" id="btnAISearch">Ask AI</button>
+  </div>
+
+  <div id="aiLoading" class="loading-spinner" style="display:none;">Analyzing enterprise knowledge repository...</div>
+
+  <div id="aiResultCard" class="ai-result-card" style="display:none;">
+    <h3>DocuCentrix AI Response</h3>
+    <div id="aiAnswerBody" class="ai-answer-body"></div>
+
+    <div class="citations-section">
+      <h4>Source Governance Citations & References</h4>
+      <div id="aiCitationsList" class="citations-grid"></div>
+    </div>
+  </div>
+</div>

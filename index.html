@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocuCentrix | Enterprise Document Governance</title>
+  <style>
+    :root {
+      --primary: #003A70;
+      --primary-dark: #002850;
+      --secondary: #0284c7;
+      --bg-light: #f8fafc;
+      --text-dark: #0f172a;
+      --border-color: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { display: flex; height: 100vh; background-color: var(--bg-light); color: var(--text-dark); overflow: hidden; }
+    
+    .sidebar { width: 250px; background-color: var(--primary); color: white; display: flex; flex-direction: column; justify-content: space-between; padding: 20px 0; }
+    .brand { padding: 0 20px 20px; font-size: 1.3rem; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .brand span { font-size: 0.75rem; display: block; font-weight: normal; opacity: 0.7; }
+    .nav-menu { list-style: none; margin-top: 15px; }
+    .nav-item { padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; opacity: 0.8; transition: 0.2s; }
+    .nav-item:hover, .nav-item.active { opacity: 1; background-color: var(--primary-dark); border-left: 4px solid var(--secondary); }
+    .user-profile { padding: 15px 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem; display: flex; align-items: center; gap: 10px; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; background-color: var(--secondary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .top-header { height: 60px; background-color: white; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; }
+    .search-bar { width: 340px; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; outline: none; font-size: 0.85rem; }
+    .header-actions { display: flex; align-items: center; gap: 20px; }
+    .role-switcher { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); font-weight: bold; font-size: 0.85rem; }
+    
+    .notif-dropdown { display: none; position: absolute; right: 0; top: 40px; width: 340px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 1000; padding: 12px; }
+    .notif-item { padding: 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; border-radius: 4px; }
+    .notif-item:hover { background-color: #f8fafc; }
+
+    .content-body { flex: 1; padding: 25px; overflow-y: auto; }
+    
+    .metric-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 20px; }
+    .metric-card { background: white; border-radius: 6px; padding: 15px; border: 1px solid var(--border-color); border-left: 4px solid #cbd5e1; }
+    .metric-card.blue { border-left-color: #0284c7; }
+    .metric-card.orange { border-left-color: #f59e0b; }
+    .metric-card.green { border-left-color: #10b981; }
+    .metric-card.red { border-left-color: #ef4444; }
+    .metric-card h2 { font-size: 1.6rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .metric-card p { font-size: 0.75rem; color: #64748b; font-weight: 500; }
+
+    .dashboard-split { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .card { background: white; border-radius: 8px; padding: 20px; border: 1px solid var(--border-color); margin-bottom:15px; }
+    
+    .table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+    .table th, .table td { padding: 10px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+    .table th { background-color: #f8fafc; font-weight: 600; color: #475569; }
+    
+    .subnav-tabs { display: flex; gap: 10px; border-bottom: 2px solid #e2e8f0; margin-bottom: 15px; }
+    .subnav-tab { padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 0.85rem; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .subnav-tab.active { color: var(--secondary); border-bottom-color: var(--secondary); }
+
+    .btn { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+    .btn-primary { background-color: var(--secondary); color: white; }
+    .btn-success { background-color: #16a34a; color: white; }
+    .btn-danger { background-color: #dc2626; color: white; }
+    .btn-secondary { background-color: #64748b; color: white; }
+    .badge { padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+    .modal-content { background: white; border-radius: 8px; padding: 25px; width: 480px; max-width: 90%; }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <div>
+      <div class="brand">
+        DocuCentrix
+        <span>Your Enterprise Name</span>
+      </div>
+      <ul class="nav-menu" id="sideNavMenu"></ul>
+    </div>
+    <div class="user-profile">
+      <div class="avatar" id="userAvatar">DC</div>
+      <div>
+        <div id="userName" style="font-weight: bold;">Loading...</div>
+        <div id="userDeptRole" style="font-size: 0.75rem; opacity: 0.8;">...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    
+    <div class="top-header">
+      <input type="text" class="search-bar" placeholder="Quick search document ID, title, keyword...">
+      
+      <div class="header-actions">
+        <div>
+          <label style="font-size: 0.8rem; margin-right: 6px; color: #64748b;">Active Dept:</label>
+          <select id="deptSelector" class="role-switcher" onchange="handleDeptSwitch(this.value)"></select>
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; margin-right: 6px; color: #64748b;">Active Role:</label>
+          <select id="roleSelector" class="role-switcher" onchange="handleRoleSwitch(this.value)"></select>
+        </div>
+
+        <div style="position: relative;">
+          <button onclick="toggleNotificationDropdown()" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 1.2rem;">🔔</span>
+            <span style="font-weight: 600; color: #1e293b; font-size: 0.9rem;">Notifications</span>
+            <span id="notifBadge" class="badge" style="background-color: var(--secondary); color: white;">0</span>
+          </button>
+
+          <div id="notificationDropdown" class="notif-dropdown">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 8px;">
+              <strong style="color: #0f172a; font-size: 0.9rem;">Notifications</strong>
+              <small style="color: #64748b; cursor: pointer;" onclick="toggleNotificationDropdown()">Close</small>
+            </div>
+            <div id="notificationListContainer" style="max-height: 260px; overflow-y: auto;">
+              <p style="color: #64748b; font-size: 0.85rem; text-align: center; padding: 10px;">Loading notifications...</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="content-body" id="appContentBody"></div>
+
+  </div>
+
+  <div id="rejectionModal" class="modal">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 15px; color: #dc2626;">Request Update / Reject Draft</h3>
+      <div style="margin-bottom: 12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Section Name *</label>
+        <input type="text" id="rejSection" class="search-bar" style="width:100%;" placeholder="e.g., Section 3.2 Security Controls">
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Rejection Reason *</label>
+        <select id="rejReason" class="role-switcher" style="width:100%;">
+          <option value="Non-Compliant Content">Non-Compliant Content</option>
+          <option value="Formatting / Template Issue">Formatting / Template Issue</option>
+          <option value="Incorrect SPOC Assignment">Incorrect SPOC Assignment</option>
+        </select>
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Detailed Comments *</label>
+        <textarea id="rejComments" style="width:100%; height: 80px; padding:8px; border:1px solid #cbd5e1; border-radius:6px;" placeholder="Specify required changes..."></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeRejectionModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="submitRejectionForm()">Submit Rejection</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="versionPreviewModal" class="modal">
+    <div class="modal-content" style="width: 80%; max-width: 900px; height: 80vh; display: flex; flex-direction: column;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; border-bottom:1px solid #cbd5e1; padding-bottom:10px;">
+        <h3 id="versionModalTitle" style="color: #003A70;">Read-Only Version Preview</h3>
+        <button class="btn btn-secondary" onclick="closeVersionPreviewModal()">Close Preview</button>
+      </div>
+      <div style="flex: 1; width: 100%; overflow: hidden; background: #f8fafc; border-radius: 6px;">
+        <iframe id="versionPreviewIframe" src="" style="width:100%; height:100%; border:none;"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div id="finalApproverModal" class="modal">
+    <div class="modal-content" style="width: 580px; max-width: 95%;">
+      <h3 style="margin-bottom: 12px; color: #003A70;">Select Final Approver(s)</h3>
+      
+      <div style="margin-bottom: 12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:4px;">Final Approver Email(s) * (Comma-separated for multiple)</label>
+        <input type="text" id="finalApproverEmailsInput" class="search-bar" style="width:100%;" placeholder="e.g. approver1@example.com, approver2@example.com" oninput="toggleFinalApprovalOptionsUI()">
+      </div>
+
+      <div id="multiApproverOptionsBox" style="display:none; background:#f8fafc; padding:12px; border-radius:6px; border:1px solid #e2e8f0; margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:700; color:#003A70; margin-bottom:6px;">Approval Requirement</label>
+        <div style="display:flex; gap:15px; font-size:0.85rem;">
+          <label><input type="radio" name="appReqRule" value="ANY_ONE" checked onclick="toggleAdvancedStageBuilder(false)"> Any One Can Approve</label>
+          <label><input type="radio" name="appReqRule" value="ALL_MUST" onclick="toggleAdvancedStageBuilder(false)"> All Selected Must Approve</label>
+          <label><input type="radio" name="appReqRule" value="ADVANCED_STAGES" onclick="toggleAdvancedStageBuilder(true)"> Advanced Stages</label>
+        </div>
+
+        <div id="advancedStageBuilderBox" style="display:none; margin-top:12px; border-top:1px solid #cbd5e1; padding-top:10px;">
+          <div id="advancedStagesContainer"></div>
+          <button class="btn btn-secondary" style="font-size:0.75rem; margin-top:8px;" onclick="addAdvancedStageRow()">+ Add Stage</button>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+        <button class="btn btn-secondary" onclick="closeFinalApproverModal()">Cancel</button>
+        <button class="btn btn-success" onclick="confirmFinalApproverSubmission()">Submit Approval</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUserState = null;
+    let currentDocDetails = null;
+    let currentRepoCategory = 'ALL';
+    let activeApprovalDocId = null;
+    let advancedStageCount = 0;
+    let activeUserAssignmentList = [];
+
+    function safeExecute(cb) {
+      try { cb(); } catch(e) { console.error("Auto Bug Fix Caught Exception:", e); }
+    }
+
+    window.onload = function() { loadDashboard(); };
+
+    function buildNavigation(role) {
+      const menu = document.getElementById('sideNavMenu');
+      let html = '';
+
+      if (role === 'Admin') {
+        html = `
+          <li class="nav-item active" onclick="switchTab('dashboard')">📊 Dashboard</li>
+          <li class="nav-item" onclick="switchTab('admin')">⚙️ Administration</li>
+        `;
+      } else if (role === 'Viewer') {
+        html = `
+          <li class="nav-item active" onclick="switchTab('dashboard')">📊 Dashboard</li>
+          <li class="nav-item" onclick="switchTab('repository')">📁 Document Repository</li>
+          <li class="nav-item" onclick="switchTab('ai')">🤖 Ask DocuCentrix AI</li>
+        `;
+      } else if (role === 'Team Lead' || role === 'Manager') {
+        html = `
+          <li class="nav-item active" onclick="switchTab('dashboard')">📊 Dashboard</li>
+          <li class="nav-item" onclick="switchTab('initiate')">➕ Initiate Document</li>
+          <li class="nav-item" onclick="switchTab('repository')">📁 Document Repository</li>
+          <li class="nav-item" onclick="switchTab('tasks')">📋 Assigned Tasks</li>
+          <li class="nav-item" onclick="switchTab('workflow')">🔄 Document Stage</li>
+          <li class="nav-item" onclick="switchTab('admin')">⚙️ Administration</li>
+          <li class="nav-item" onclick="switchTab('ai')">🤖 Ask DocuCentrix AI</li>
+        `;
+      } else {
+        html = `
+          <li class="nav-item active" onclick="switchTab('dashboard')">📊 Dashboard</li>
+          <li class="nav-item" onclick="switchTab('repository')">📁 Document Repository</li>
+          <li class="nav-item" onclick="switchTab('tasks')">📋 Assigned Tasks</li>
+          <li class="nav-item" onclick="switchTab('workflow')">🔄 Document Stage</li>
+          <li class="nav-item" onclick="switchTab('admin')">⚙️ Administration</li>
+          <li class="nav-item" onclick="switchTab('ai')">🤖 Ask DocuCentrix AI</li>
+        `;
+      }
+      menu.innerHTML = html;
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      if (event && event.currentTarget) event.currentTarget.classList.add('active');
+
+      if (tabName === 'dashboard') loadDashboard();
+      else if (tabName === 'initiate') loadInitiateDocumentForm();
+      else if (tabName === 'repository') loadRepository();
+      else if (tabName === 'tasks') loadAssignedTasks();
+      else if (tabName === 'workflow') loadWorkflowOverview();
+      else if (tabName === 'admin') loadAdminConsole();
+      else if (tabName === 'ai') loadAiAssistant();
+    }
+
+    function loadDashboard() {
+      google.script.run.withSuccessHandler(function(data) {
+        safeExecute(function() {
+          currentUserState = data.user || {};
+          updateUserUI(data.user);
+          buildNavigation(data.user.Role);
+
+          document.getElementById('notifBadge').innerText = (data.notifications || []).length;
+
+          const totalDocs = data.metrics.total || 1;
+          const healthyPct = Math.round(((data.health.healthy || 0) / totalDocs) * 100);
+          const attentionPct = Math.round(((data.health.attention || 0) / totalDocs) * 100);
+          const actionReqPct = Math.round(((data.health.actionReq || 0) / totalDocs) * 100);
+
+          let html = `
+            <h2>Governance Dashboard</h2>
+            <p style="color: #64748b; margin-bottom: 20px; font-size: 0.85rem;">Centralized document governance metrics, health analytics, and task control panel.</p>
+
+            <div class="metric-grid">
+              <div class="metric-card blue"><h2>${data.metrics.total}</h2><p>Total Documents</p></div>
+              <div class="metric-card blue"><h2>${data.metrics.drafts}</h2><p>Draft Documents</p></div>
+              <div class="metric-card orange"><h2>${data.metrics.pendingReviews}</h2><p>Pending Reviews</p></div>
+              <div class="metric-card blue"><h2>${data.metrics.published}</h2><p>Published Documents</p></div>
+              <div class="metric-card orange"><h2>${data.metrics.pendingFinal}</h2><p>Pending Final Approval</p></div>
+              <div class="metric-card green"><h2>${data.metrics.fullyApproved}</h2><p>Fully Approved</p></div>
+              <div class="metric-card red"><h2>${data.metrics.expired}</h2><p>Expired / Due Review</p></div>
+            </div>
+
+            <div class="dashboard-split">
+              <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                  <h3 style="color:#0f172a; font-size:1rem; margin:0;">Document Governance Health Breakdown</h3>
+                  <span class="badge" style="background:#dcfce7; color:#166534; font-size:0.8rem; padding:4px 10px;">Overall Health: ${data.health.healthyPct}%</span>
+                </div>
+                
+                <div style="width: 100%; background: #e2e8f0; height: 14px; border-radius: 7px; display:flex; overflow: hidden; margin-bottom: 20px;">
+                  <div style="width: ${healthyPct}%; background: #10b981; height: 100%;" title="Healthy Docs: ${data.health.healthy}"></div>
+                  <div style="width: ${attentionPct}%; background: #f59e0b; height: 100%;" title="Attention Needed: ${data.health.attention}"></div>
+                  <div style="width: ${actionReqPct}%; background: #ef4444; height: 100%;" title="Action Required: ${data.health.actionReq}"></div>
+                </div>
+
+                <div style="width: 100%; display: flex; justify-content: space-around; text-align: center;">
+                  <div style="flex: 1; text-align: center;">
+                    <h2 style="color:#10b981; margin: 0 0 4px 0; font-size: 1.5rem; font-weight: 700;">${data.health.healthy || 0}</h2>
+                    <p style="font-size:0.8rem; color:#64748b; margin: 0; white-space: nowrap;">Healthy Docs</p>
+                  </div>
+                  <div style="flex: 1; text-align: center;">
+                    <h2 style="color:#f59e0b; margin: 0 0 4px 0; font-size: 1.5rem; font-weight: 700;">${data.health.attention || 0}</h2>
+                    <p style="font-size:0.8rem; color:#64748b; margin: 0; white-space: nowrap;">Attention Needed</p>
+                  </div>
+                  <div style="flex: 1; text-align: center;">
+                    <h2 style="color:#ef4444; margin: 0 0 4px 0; font-size: 1.5rem; font-weight: 700;">${data.health.actionReq || 0}</h2>
+                    <p style="font-size:0.8rem; color:#64748b; margin: 0; white-space: nowrap;">Action Required</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3 style="color:#0f172a; font-size:1rem; margin-bottom: 12px;">My Pending Notifications</h3>
+                <div style="max-height:180px; overflow-y:auto;">
+          `;
+
+          if ((data.notifications || []).length === 0) {
+            html += `<p style="color:#64748b; font-size:0.8rem; text-align:center;">No pending notifications.</p>`;
+          } else {
+            data.notifications.forEach(n => {
+              html += `<div style="border-bottom:1px solid #f1f5f9; padding-bottom:8px; margin-bottom:8px;"><strong style="font-size:0.85rem; color:#0284c7;">{n.Message}</p></div>`;
+            });
+          }
+
+          html += `</div></div></div>`;
+
+          if (data.user.Role === 'Admin') {
+            html += `
+              <div class="card">
+                <h3 style="color:#0f172a; font-size:1rem; margin-bottom: 10px;">Recent System Activity (Admin View)</h3>
+                <table class="table">
+                  <thead><tr><th>Doc ID</th><th>Action</th><th>User</th><th>Role</th><th>Date & Time</th></tr></thead>
+                  <tbody>
+            `;
+            (data.recentActivity || []).forEach(a => {
+              html += `<tr><td><strong>{a.Action}</span></td><td>{a.Role}</td><td><small>${a.Timestamp ? new Date(a.Timestamp).toLocaleString() : ''}</small></td></tr>`;
+            });
+            html += `</tbody></table></div>`;
+          }
+
+          document.getElementById('appContentBody').innerHTML = html;
+        });
+      }).getDashboardData();
+    }
+
+    function toggleNotificationDropdown() {
+      const dropdown = document.getElementById('notificationDropdown');
+      const isHidden = dropdown.style.display === 'none' || dropdown.style.display === '';
+      dropdown.style.display = isHidden ? 'block' : 'none';
+
+      if (isHidden) {
+        google.script.run.withSuccessHandler(function(data) {
+          const container = document.getElementById('notificationListContainer');
+          const notifs = data.notifications || [];
+          if (notifs.length === 0) {
+            container.innerHTML = '<p style="color: #64748b; font-size: 0.85rem; text-align: center; padding: 10px;">No new notifications.</p>';
+            return;
+          }
+          let html = '';
+          notifs.forEach(n => {
+            html += `
+              <div class="notif-item" onclick="document.getElementById('notificationDropdown').style.display='none'; loadDocumentDetails('${n.LinkDocumentID}')">
+                <div style="font-weight: 600; font-size: 0.85rem; color: #0284c7;">${n.Title || 'Alert'}</div>
+                <div style="font-size: 0.8rem; color: #334155; margin-top: 2px;">${n.Message || ''}</div>
+              </div>
+            `;
+          });
+          container.innerHTML = html;
+        }).getDashboardData();
+      }
+    }
+
+    function updateUserUI(user) {
+      if (!user) return;
+      document.getElementById('userName').innerText = user.FullName || 'User';
+      document.getElementById('userDeptRole').innerText = `{user.Role})`;
+      
+      const roleSelector = document.getElementById('roleSelector');
+      const assignedRoles = user.AssignedRoles || [user.Role];
+      
+      let roleHtml = '';
+      assignedRoles.forEach(r => {
+        roleHtml += `<option value="${r}" {r}</option>`;
+      });
+      roleSelector.innerHTML = roleHtml;
+
+      const deptSelector = document.getElementById('deptSelector');
+      if (deptSelector) {
+        let depts = ['HRO', 'Finance'];
+        let deptHtml = '';
+        if (!user.Department) {
+          deptHtml += `<option value="" selected disabled>Unassigned</option>`;
+        }
+        depts.forEach(d => {
+          deptHtml += `<option value="${d}" {d}</option>`;
+        });
+        deptSelector.innerHTML = deptHtml;
+      }
+    }
+
+    function handleRoleSwitch(newRole) {
+      google.script.run.withSuccessHandler(function() { loadDashboard(); }).switchActiveUserRole(newRole);
+    }
+
+    function handleDeptSwitch(newDept) {
+      google.script.run.withSuccessHandler(function() { loadDashboard(); }).switchActiveUserDepartment(newDept);
+    }
+
+    function loadInitiateDocumentForm() {
+      let html = `
+        <h2>Initiate Governance Request</h2>
+        <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 15px;">Create a new Google Doc, Sheet, Slide Presentation, or upload an existing file.</p>
+        
+        <div class="card" style="max-width: 680px;">
+          <form onsubmit="handleInitiateSubmit(event)">
+            <div style="margin-bottom: 12px;">
+              <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Document Title *</label>
+              <input type="text" id="initTitle" class="search-bar" style="width:100%;" required placeholder="e.g., Payroll Processing SOP / Treasury Tracker">
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
+              <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Department *</label>
+                <select id="initDept" class="role-switcher" style="width:100%;" onchange="updateSubDeptDropdown(this.value)">
+                  <option value="HRO">HRO</option>
+                  <option value="Finance">Finance</option>
+                </select>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Sub Department *</label>
+                <select id="initSubDept" class="role-switcher" style="width:100%;"></select>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
+              <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Governance Document Category *</label>
+                <select id="initType" class="role-switcher" style="width:100%;">
+                  <option value="SOP">SOP</option>
+                  <option value="Policy">Policy</option>
+                  <option value="Procedure">Procedure</option>
+                  <option value="Work Instruction">Work Instruction</option>
+                  <option value="Guideline">Guideline</option>
+                  <option value="Template">Template</option>
+                </select>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Target Output File Format</label>
+                <select id="initFmt" class="role-switcher" style="width:100%;">
+                  <option value="AUTO">Auto-Default (Smart Choice)</option>
+                  <option value="DOC">Google Doc (.gdoc)</option>
+                  <option value="SHEET">Google Sheet (.gsheet)</option>
+                  <option value="SLIDE">Google Slide (.gslides)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
+              <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Classification *</label>
+                <select id="initClass" class="role-switcher" style="width:100%;">
+                  <option value="Internal">Internal</option>
+                  <option value="Confidential">Confidential</option>
+                  <option value="Public">Public</option>
+                </select>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Primary Editor Email *</label>
+                <input type="email" id="initEditor" class="search-bar" style="width:100%;" required placeholder="primary.editor@example.com">
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
+              <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Co-Editors (Optional)</label>
+                <input type="text" id="initCoEditors" class="search-bar" style="width:100%;" placeholder="coeditor1@example.com">
+              </div>
+              <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Effective Date *</label>
+                <input type="date" id="initEffectiveDate" class="search-bar" style="width:100%;" required>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+              <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Review Frequency *</label>
+              <select id="initReviewFreq" class="role-switcher" style="width:100%;">
+                <option value="Monthly">Monthly</option>
+                <option value="Quarterly">Quarterly</option>
+                <option value="Half-Yearly">Half-Yearly</option>
+                <option value="Annually">Annually</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+              <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom: 4px;">Attach File (Optional PDF, DOCX, XLSX, PPTX)</label>
+              <input type="file" id="initFileInput" style="font-size:0.85rem;">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%;">Initiate Document Request</button>
+          </form>
+        </div>
+      `;
+      document.getElementById('appContentBody').innerHTML = html;
+      updateSubDeptDropdown('HRO');
+    }
+
+    function updateSubDeptDropdown(dept) {
+      const subDeptSelect = document.getElementById('initSubDept');
+      let options = [];
+      if (dept === 'HRO') {
+        options = ['Payroll', 'EDM'];
+      } else if (dept === 'Finance') {
+        options = ['Order To Cash', 'Treasury', 'Record to Report', 'Record to Pay'];
+      }
+      
+      let html = '';
+      options.forEach(s => {
+        html += `<option value="{s}</option>`;
+      });
+      subDeptSelect.innerHTML = html;
+    }
+
+    function handleInitiateSubmit(e) {
+      e.preventDefault();
+      const formData = {
+        title: document.getElementById('initTitle').value,
+        department: document.getElementById('initDept').value,
+        subDepartment: document.getElementById('initSubDept').value,
+        documentType: document.getElementById('initType').value,
+        targetFormat: document.getElementById('initFmt').value,
+        classification: document.getElementById('initClass').value,
+        editorEmail: document.getElementById('initEditor').value,
+        coEditors: document.getElementById('initCoEditors').value,
+        effectiveDate: document.getElementById('initEffectiveDate').value,
+        reviewFrequency: document.getElementById('initReviewFreq').value
+      };
+
+      const fileInput = document.getElementById('initFileInput');
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          google.script.run.withSuccessHandler(function(res) {
+            alert("Document request initiated successfully! ID: " + res.documentId);
+            switchTab('repository');
+          }).withFailureHandler(function(err) {
+            alert(err.message);
+          }).createDocumentRequest(formData, evt.target.result, file.name, file.type);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        google.script.run.withSuccessHandler(function(res) {
+          alert("Document workspace created successfully! ID: " + res.documentId);
+          switchTab('repository');
+        }).withFailureHandler(function(err) {
+          alert(err.message);
+        }).createDocumentRequest(formData, null, null, null);
+      }
+    }
+
+    function loadRepository(category) {
+      if (category) currentRepoCategory = category;
+
+      if (!currentUserState || !currentUserState.Department || currentUserState.Department.trim() === '') {
+        let unassignedHtml = `
+          <h2>Document Repository</h2>
+          <div class="card" style="text-align: center; padding: 40px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px;">
+            <h3 style="color: #856404; margin-bottom: 10px;">⚠️ Access Restricted</h3>
+            <p style="color: #856404; font-size: 0.95rem; font-weight: 600;">
+              Ask your Team Lead or Manager to assign you a Department and Sub Department to access documents.
+            </p>
+          </div>
+        `;
+        document.getElementById('appContentBody').innerHTML = unassignedHtml;
+        return;
+      }
+
+      google.script.run.withSuccessHandler(function(docs) {
+        let categories = ['ALL', 'SOP', 'Checklist', 'Template', 'Work Instruction', 'Policy', 'Guideline'];
+        
+        let html = `<h2>Document Repository</h2>`;
+        
+        html += `<div class="subnav-tabs" style="margin-bottom: 15px;">`;
+        categories.forEach(cat => {
+          let activeClass = (cat === currentRepoCategory) ? 'active' : '';
+          let label = (cat === 'ALL') ? '📁 All Documents' : cat;
+          html += `<div class="subnav-tab {cat}')">${label}</div>`;
+        });
+        html += `</div>`;
+
+        html += `<div class="card"><table class="table"><thead><tr><th>Doc ID</th><th>Title</th><th>Department</th><th>Category</th><th>Ver</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
+        
+        if (docs.length === 0) {
+          html += `<tr><td colspan="7" style="text-align:center; color:#64748b;">No documents available under category "${currentRepoCategory}".</td></tr>`;
+        } else {
+          docs.forEach(d => {
+            html += `<tr><td><strong>{d.Title}</td><td>{d.DocumentType}</span></td><td>{d.Status}</td><td><button class="btn btn-primary" onclick="loadDocumentDetails('${d.DocumentID}')">View</button></td></tr>`;
+          });
+        }
+        
+        html += `</tbody></table></div>`;
+        document.getElementById('appContentBody').innerHTML = html;
+      }).getDocuments({ category: currentRepoCategory });
+    }
+
+    function loadDocumentDetails(docId) {
+      google.script.run.withSuccessHandler(function(res) {
+        safeExecute(function() {
+          currentDocDetails = res;
+          const doc = res.doc || {};
+          const role = currentUserState ? currentUserState.Role : '';
+          const status = String(doc.Status || '').toUpperCase();
+
+          let isMyActionStage = false;
+          let isEditorDraftStage = false;
+
+          if (role === 'Editor' && ['DRAFT', 'REVISION_REQUESTED'].includes(status)) {
+            isEditorDraftStage = true;
+          } else if (role === 'Team Lead' && status === 'SUBMITTED_LEVEL_1') {
+            isMyActionStage = true;
+          } else if (role === 'Manager' && status === 'SUBMITTED_LEVEL_2') {
+            isMyActionStage = true;
+          } else if (role === 'Final Approver' && status === 'PUBLISHED_PENDING_FINAL_APPROVAL') {
+            isMyActionStage = true;
+          }
+
+          let html = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+              <div>
+                <h2>{doc.DocumentID})</h2>
+                <p style="color: #64748b; font-size:0.85rem;">Dept: {doc.Status}</strong> | Classification: <strong>${doc.Classification}</strong></p>
+              </div>
+              <div style="display:flex; gap: 8px;">
+                <button class="btn btn-secondary" onclick="loadRepository()">Back</button>
+
+                ${doc.EditableUrl ? `
+                  <a href="${doc.EditableUrl}" target="_blank" class="btn btn-primary" style="text-decoration:none;">✏️ Edit Document Workspace</a>
+                ` : ''}
+
+                ${['Manager', 'Admin'].includes(role) ? `
+                  <button class="btn btn-secondary" onclick="promptChangeClassification('${doc.DocumentID}')">🏷️ Classification</button>
+                  <button class="btn btn-secondary" onclick="promptReassignFinalApprover('${doc.DocumentID}')">👤 Reassign Final Approver</button>
+                ` : ''}
+
+                ${['Team Lead', 'Manager', 'Admin'].includes(role) ? `
+                  <button class="btn btn-secondary" onclick="promptReassignEditor('${doc.DocumentID}')">👥 Reassign Editor</button>
+                ` : ''}
+                
+                ${isEditorDraftStage ? `
+                  <button class="btn btn-primary" onclick="handleSendForReview('${doc.DocumentID}')">📤 Send for Approval</button>
+                ` : ''}
+
+                ${isMyActionStage ? `
+                  <button class="btn btn-success" onclick="handleApproveDocument('${doc.DocumentID}')">✅ Approve Document</button>
+                  <button class="btn btn-danger" onclick="openRejectionModal()">❌ Request Update / Reject</button>
+                ` : ''}
+              </div>
+            </div>
+
+            <div class="subnav-tabs">
+              <div class="subnav-tab active" onclick="switchDocSubTab('contentTab', this)">📄 Content Preview</div>
+              <div class="subnav-tab" onclick="switchDocSubTab('versionsTab', this)">📜 Version History & Comparison</div>
+              <div class="subnav-tab" onclick="switchDocSubTab('auditTab', this)">📋 Audit Trail</div>
+              <div class="subnav-tab" onclick="switchDocSubTab('commentsTab', this)">💬 Revision Comments</div>
+            </div>
+
+            <div id="contentTab" class="docSubTabContent card" style="height:500px; padding:0; overflow:hidden; background:#fff;">
+              ${(doc.FileUrl && doc.FileUrl !== '#') ? `
+                <iframe src="${doc.FileUrl}" style="width:100%; height:100%; border:none;" allow="autoplay"></iframe>
+              ` : `
+                <div style="text-align:center; padding:120px 20px; color:#64748b;">
+                  <h3>📄 Preview Document Workspace</h3>
+                  <p style="margin-top:8px; font-size:0.85rem;">Google Drive file URL or workspace ID is currently initializing for Document ${doc.DocumentID}.</p>
+                </div>
+              `}
+            </div>
+
+            <div id="versionsTab" class="docSubTabContent card" style="display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3>Version History & Rollback Controls</h3>
+                ${['Manager', 'Team Lead'].includes(role) ? `
+                  <button class="btn btn-secondary" onclick="promptRollbackVersion('${doc.DocumentID}')">⏪ Rollback Version</button>
+                ` : ''}
+              </div>
+
+              <div style="display:flex; gap:10px; align-items:center; background:#f8fafc; padding:12px; border-radius:6px; margin-bottom:15px;">
+                <label style="font-size:0.85rem; font-weight:600;">Compare Version:</label>
+                <select id="verSelectA" class="role-switcher"></select>
+                <label style="font-size:0.85rem; font-weight:600;">with Version:</label>
+                <select id="verSelectB" class="role-switcher"></select>
+                <button class="btn btn-primary" onclick="runVersionComparison('${doc.DocumentID}')">🔍 Compare Selected Versions</button>
+              </div>
+
+              <div id="comparisonResultBox" style="display:none; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:12px; margin-bottom:15px; font-size:0.85rem; color:#1e40af;"></div>
+
+              <table class="table">
+                <thead><tr><th>Version Number</th><th>Created By</th><th>Creation Date</th><th>Approval Status</th><th>Change Summary</th><th>View Version</th></tr></thead>
+                <tbody>
+          `;
+
+          const verList = res.versions || [];
+          let verOptionsHtml = '';
+          verList.forEach(v => {
+            html += `
+              <tr>
+                <td><strong>${v.VersionNumber}</strong></td>
+                <td>${v.UploadedBy}</td>
+                <td>${v.UploadedAt ? new Date(v.UploadedAt).toLocaleString() : '-'}</td>
+                <td><span class="badge" style="background:#e2e8f0;">${v.Status}</span></td>
+                <td>${v.ChangeSummary}</td>
+                <td>
+                  <button class="btn btn-primary" style="padding:4px 8px; font-size:0.75rem;" onclick="openVersionPreviewModal('{v.VersionFileUrl}')">📄 View Version</button>
+                </td>
+              </tr>
+            `;
+            verOptionsHtml += `<option value="{v.VersionNumber}</option>`;
+          });
+
+          html += `</tbody></table></div>`;
+
+          html += `
+            <div id="auditTab" class="docSubTabContent card" style="display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3>Document Lifetime Audit Trail</h3>
+                <button class="btn btn-secondary" onclick="openAuditTrailInGoogleSheet()">📊 View Audit Trail in Google Sheet</button>
+              </div>
+              <div style="max-height:350px; overflow-y:auto;">
+                <table class="table"><thead><tr><th>Audit ID</th><th>Action</th><th>User</th><th>Role</th><th>Timestamp</th><th>Comments</th></tr></thead><tbody>`;
+          (res.auditTrail || []).forEach(a => {
+            html += `<tr><td><small>{a.Action}</strong></td><td>{a.Role}</td><td><small>{a.Comments || '-'}</small></td></tr>`;
+          });
+          html += `</tbody></table></div></div>`;
+
+          html += `
+            <div id="commentsTab" class="docSubTabContent card" style="display:none;">
+              <h3>In-App Document Comments & Feedback</h3>
+              
+              <div style="margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <h4 style="margin-bottom: 10px; font-size: 0.9rem; color: #003A70;">Add Comment</h4>
+                <div style="margin-bottom: 10px;">
+                  <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Section Name / Page Reference</label>
+                  <input type="text" id="newCommentSection" class="search-bar" style="width:100%;" placeholder="e.g., Section 2.1 or General Feedback">
+                </div>
+                <div style="margin-bottom: 10px;">
+                  <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Your Comment *</label>
+                  <textarea id="newCommentText" style="width:100%; height: 70px; padding:8px; border:1px solid #cbd5e1; border-radius:6px;" placeholder="Write your in-app comment or feedback..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="submitInAppComment('${doc.DocumentID}')">💬 Submit Comment</button>
+              </div>
+
+              <table class="table"><thead><tr><th>Comment ID</th><th>Version</th><th>Section</th><th>User</th><th>Feedback / Comment</th></tr></thead><tbody>`;
+          (res.comments || []).forEach(c => {
+            html += `<tr><td><small>{c.VersionNumber}</td><td><strong>{c.UserEmail}</td><td>${c.CommentText}</td></tr>`;
+          });
+          html += `</tbody></table></div>`;
+
+          document.getElementById('appContentBody').innerHTML = html;
+          
+          const selA = document.getElementById('verSelectA');
+          const selB = document.getElementById('verSelectB');
+          if (selA && selB) {
+            selA.innerHTML = verOptionsHtml;
+            selB.innerHTML = verOptionsHtml;
+          }
+        });
+      })
+      .withFailureHandler(function(err) {
+        alert("Error opening document details: " + err.message);
+      })
+      .getDocumentDetails(docId);
+    }
+
+    function switchDocSubTab(tabId, el) {
+      document.querySelectorAll('.docSubTabContent').forEach(t => t.style.display = 'none');
+      document.querySelectorAll('.subnav-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabId).style.display = 'block';
+      el.classList.add('active');
+    }
+
+    function submitInAppComment(docId) {
+      const sec = document.getElementById('newCommentSection').value;
+      const text = document.getElementById('newCommentText').value;
+
+      if (!text || text.trim() === '') {
+        alert("Please enter a comment before submitting.");
+        return;
+      }
+
+      google.script.run.withSuccessHandler(function() {
+        alert("Comment added successfully.");
+        loadDocumentDetails(docId);
+      }).withFailureHandler(function(err) {
+        alert("Failed to submit comment: " + err.message);
+      }).addDocumentComment(docId, sec, text);
+    }
+
+    function openVersionPreviewModal(versionNumber, previewUrl) {
+      if (!previewUrl || previewUrl === '#') {
+        alert(`Read-only preview is unavailable for Version ${versionNumber}.`);
+        return;
+      }
+      
+      const modal = document.getElementById('versionPreviewModal');
+      const iframe = document.getElementById('versionPreviewIframe');
+      const title = document.getElementById('versionModalTitle');
+      
+      if (modal && iframe && title) {
+        title.innerText = `Read-Only Preview - Version ${versionNumber}`;
+        iframe.src = previewUrl;
+        modal.style.display = 'flex';
+      } else {
+        window.open(previewUrl, '_blank');
+      }
+    }
+
+    function closeVersionPreviewModal() {
+      const modal = document.getElementById('versionPreviewModal');
+      const iframe = document.getElementById('versionPreviewIframe');
+      if (modal && iframe) {
+        iframe.src = '';
+        modal.style.display = 'none';
+      }
+    }
+
+    function openAuditTrailInGoogleSheet() {
+      google.script.run.withSuccessHandler(function(url) {
+        window.open(url, '_blank');
+      }).getAuditSpreadsheetUrl();
+    }
+
+    function handleSendForReview(docId) {
+      const summary = prompt("Enter a brief change summary for this submission:");
+      if (summary === null) return;
+
+      google.script.run.withSuccessHandler(function() {
+        alert("Document submitted for Level 1 Team Lead Review.");
+        loadRepository();
+      }).submitEditorDraftForReview(docId, summary);
+    }
+
+    function promptChangeClassification(docId) {
+      const newClass = prompt("Select new classification (Internal, Confidential, Public):");
+      if (!newClass) return;
+
+      google.script.run.withSuccessHandler(function() {
+        alert("Classification updated successfully.");
+        loadDocumentDetails(docId);
+      }).updateDocumentClassification(docId, newClass);
+    }
+
+    function promptReassignEditor(docId) {
+      const email = prompt("Enter new Primary Editor Email:");
+      if (!email) return;
+
+      google.script.run.withSuccessHandler(function() {
+        alert("Primary Editor reassigned successfully.");
+        loadDocumentDetails(docId);
+      }).reassignDocumentEditor(docId, email, '');
+    }
+
+    function promptReassignFinalApprover(docId) {
+      const email = prompt("Enter new Final Approver Email:");
+      if (!email) return;
+
+      google.script.run.withSuccessHandler(function() {
+        alert("Final Approver reassigned successfully.");
+        loadDocumentDetails(docId);
+      }).reassignFinalApprover(docId, email);
+    }
+
+    function promptRollbackVersion(docId) {
+      const ver = prompt("Enter published version number to rollback to (e.g., v1.0):");
+      if (!ver) return;
+
+      google.script.run.withSuccessHandler(function() {
+        alert("Rollback executed successfully.");
+        loadDocumentDetails(docId);
+      }).initiateRollback(docId, ver);
+    }
+
+    function handleApproveDocument(docId) {
+      activeApprovalDocId = docId;
+      if (currentUserState.Role === 'Manager' && currentDocDetails.doc.Status === 'SUBMITTED_LEVEL_2') {
+        document.getElementById('finalApproverModal').style.display = 'flex';
+        return;
+      }
+
+      if (!confirm("Confirm approval for this document stage?")) return;
+      
+      google.script.run.withSuccessHandler(function() {
+        alert("Approval granted.");
+        loadDocumentDetails(docId);
+      }).processWorkflowApproval(docId, 'APPROVE', '', '', '', '');
+    }
+
+    function toggleFinalApprovalOptionsUI() {
+      const val = document.getElementById('finalApproverEmailsInput').value;
+      const emails = val.split(',').filter(e => e.trim() !== '');
+      const box = document.getElementById('multiApproverOptionsBox');
+      
+      if (emails.length > 1) {
+        box.style.display = 'block';
+      } else {
+        box.style.display = 'none';
+        toggleAdvancedStageBuilder(false);
+      }
+    }
+
+    function toggleAdvancedStageBuilder(show) {
+      const box = document.getElementById('advancedStageBuilderBox');
+      box.style.display = show ? 'block' : 'none';
+      if (show && advancedStageCount === 0) {
+        addAdvancedStageRow();
+        addAdvancedStageRow();
+      }
+    }
+
+    function addAdvancedStageRow() {
+      advancedStageCount++;
+      const container = document.getElementById('advancedStagesContainer');
+      const stageDiv = document.createElement('div');
+      stageDiv.className = 'stage-row';
+      stageDiv.style.cssText = 'background:#fff; padding:8px; border:1px solid #cbd5e1; border-radius:4px; margin-bottom:8px;';
+      stageDiv.innerHTML = `
+        <strong>Stage ${advancedStageCount}</strong>
+        <div style="display:flex; gap:10px; margin:4px 0; font-size:0.8rem;">
+          <label><input type="radio" name="stageRule_${advancedStageCount}" value="ANY_ONE" checked> Any One</label>
+          <label><input type="radio" name="stageRule_${advancedStageCount}" value="ALL_MUST"> All Must</label>
+        </div>
+        <input type="text" id="stageApprovers_${advancedStageCount}" class="search-bar" style="width:100%; font-size:0.8rem;" placeholder="Approver emails (comma-separated)">
+      `;
+      container.appendChild(stageDiv);
+    }
+
+    function confirmFinalApproverSubmission() {
+      const emails = document.getElementById('finalApproverEmailsInput').value;
+      if (!emails || emails.trim() === '') {
+        alert("Please enter at least one Final Approver email.");
+        return;
+      }
+
+      const emailList = emails.split(',').filter(e => e.trim() !== '');
+      let appType = 'SINGLE';
+      let config = [];
+
+      if (emailList.length > 1) {
+        const selectedRule = document.querySelector('input[name="appReqRule"]:checked').value;
+        appType = selectedRule;
+
+        if (appType === 'ADVANCED_STAGES') {
+          for (let i = 1; i <= advancedStageCount; i++) {
+            const rule = document.querySelector(`input[name="stageRule_${i}"]:checked`).value;
+            const appVals = document.getElementById(`stageApprovers_${i}`).value;
+            if (appVals && appVals.trim() !== '') {
+              config.push({
+                stage: i,
+                rule: rule,
+                approvers: appVals.split(',').map(e => e.trim())
+              });
+            }
+          }
+        }
+      }
+
+      closeFinalApproverModal();
+      google.script.run.withSuccessHandler(function() {
+        alert("Approval granted.");
+        loadDocumentDetails(activeApprovalDocId);
+      }).processWorkflowApproval(activeApprovalDocId, 'APPROVE', '', '', '', emails, appType, config);
+    }
+
+    function closeFinalApproverModal() {
+      document.getElementById('finalApproverModal').style.display = 'none';
+    }
+
+    function openRejectionModal() { document.getElementById('rejectionModal').style.display = 'flex'; }
+    function closeRejectionModal() { document.getElementById('rejectionModal').style.display = 'none'; }
+
+    function submitRejectionForm() {
+      const sec = document.getElementById('rejSection').value;
+      const reas = document.getElementById('rejReason').value;
+      const comm = document.getElementById('rejComments').value;
+      if (!sec || !comm) { alert("Section and Comments are mandatory."); return; }
+
+      closeRejectionModal();
+      google.script.run.withSuccessHandler(function() {
+        alert("Rejection submitted.");
+        loadDocumentDetails(currentDocDetails.doc.DocumentID);
+      }).processWorkflowApproval(currentDocDetails.doc.DocumentID, 'REQUEST_UPDATE', comm, reas, sec, '');
+    }
+
+    function runVersionComparison(docId) {
+      const vA = document.getElementById('verSelectA').value;
+      const vB = document.getElementById('verSelectB').value;
+
+      google.script.run.withSuccessHandler(function(res) {
+        const box = document.getElementById('comparisonResultBox');
+        box.style.display = 'block';
+        box.innerHTML = `<strong>Version Comparison Summary (${vA} vs ${vB}):</strong><br>` + res.differences.join('<br>');
+      }).compareDocumentVersions(docId, vA, vB);
+    }
+
+    function loadAdminConsole() {
+      const role = currentUserState ? currentUserState.Role : 'Admin';
+      let roleOptions = '';
+
+      if (role === 'Admin') {
+        roleOptions = `<option value="Manager">Manager</option><option value="Final Approver">Final Approver</option>`;
+      } else if (role === 'Manager') {
+        roleOptions = `<option value="Team Lead">Team Lead</option><option value="Final Approver">Final Approver</option>`;
+      } else if (role === 'Team Lead') {
+        roleOptions = `<option value="Editor">Editor</option><option value="Viewer">Viewer</option>`;
+      }
+
+      let html = `
+        <h2>Administration Console</h2>
+        <div class="subnav-tabs" style="margin-top:15px; margin-bottom:15px;">
+          <div class="subnav-tab active" onclick="switchAdminTab('assignTab', this)">Assign User Access</div>
+          <div class="subnav-tab" onclick="switchAdminTab('revokeDocTab', this)">Revoke Document Access</div>
+          <div class="subnav-tab" onclick="switchAdminTab('revokeUserTab', this)">Revoke User Access</div>
+        </div>
+
+        <div id="assignTab" class="adminSubTab card">
+          <h3>User Role Assignment</h3>
+          <form onsubmit="handleUserAssignment(event)" style="margin-top:10px; max-width:500px;">
+            <div style="margin-bottom:10px;">
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">User Email *</label>
+              <input type="email" id="assignEmail" class="search-bar" style="width:100%;" required placeholder="user@example.com">
+            </div>
+            <div style="margin-bottom:10px;">
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Role *</label>
+              <select id="assignRole" class="role-switcher" style="width:100%;">
+                ${roleOptions}
+              </select>
+            </div>
+            <div style="margin-bottom:10px;">
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Department *</label>
+              <select id="assignDept" class="role-switcher" style="width:100%;" onchange="updateAdminSubDeptDropdown(this.value)">
+                <option value="HRO">HRO</option>
+                <option value="Finance">Finance</option>
+              </select>
+            </div>
+            <div style="margin-bottom:15px;">
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Sub Department</label>
+              <select id="assignAdminSubDept" class="role-switcher" style="width:100%;"></select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Assign Hierarchy</button>
+          </form>
+        </div>
+
+        <div id="revokeDocTab" class="adminSubTab card" style="display:none;">
+          <h3>Revoke Specific Document Access</h3>
+          <form onsubmit="handleRevokeDocAccessSubmit(event)" style="margin-top:10px; max-width:500px;">
+            <div style="margin-bottom:10px;">
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Target Document ID *</label>
+              <input type="text" id="revokeDocId" class="search-bar" style="width:100%;" required placeholder="e.g., DOC-837192">
+            </div>
+            <div style="margin-bottom:15px;">
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">SPOC User Email *</label>
+              <input type="email" id="revokeSpocEmail" class="search-bar" style="width:100%;" required placeholder="spoc@example.com">
+            </div>
+            <button type="submit" class="btn btn-danger" style="width:100%;">🚫 Revoke Document Access</button>
+          </form>
+        </div>
+
+        <div id="revokeUserTab" class="adminSubTab card" style="display:none;">
+          <h3 style="color:#dc2626;">Revoke User Access</h3>
+          <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">Revoke specific organizational roles, departments, and sub-department assignments from an employee.</p>
+          
+          <form onsubmit="handleRevokeUserAccessSubmit(event)" style="margin-top:10px; max-width:500px;">
+            <div style="margin-bottom:10px;">
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Employee Email ID *</label>
+              <input type="email" id="revokeUserEmail" class="search-bar" style="width:100%;" required placeholder="employee@example.com" onchange="fetchAndPopulateUserAssignments(this.value)" onblur="fetchAndPopulateUserAssignments(this.value)">
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Role *</label>
+              <select id="revokeRoleSelect" class="role-switcher" style="width:100%; border-color:#fca5a5;" required onchange="updateRevokeDeptOptions()">
+                <option value="" disabled selected>Enter Employee Email first...</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Department *</label>
+              <select id="revokeDeptSelect" class="role-switcher" style="width:100%; border-color:#fca5a5;" required onchange="updateRevokeSubDeptOptions()">
+                <option value="" disabled selected>Select Role first...</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Sub Department</label>
+              <select id="revokeSubDeptSelect" class="role-switcher" style="width:100%; border-color:#fca5a5;">
+                <option value="" disabled selected>Select Department first...</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom:15px;">
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Reason for Revocation *</label>
+              <textarea id="revokeReason" style="width:100%; height:70px; padding:8px; border:1px solid #cbd5e1; border-radius:6px;" required placeholder="Specify organizational reason for revoking this assignment..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-danger" style="width:100%; background-color:#dc2626; color:white;">🚫 Revoke User Access</button>
+          </form>
+        </div>
+      `;
+      document.getElementById('appContentBody').innerHTML = html;
+      updateAdminSubDeptDropdown('HRO');
+    }
+
+    function switchAdminTab(tabId, el) {
+      document.querySelectorAll('.adminSubTab').forEach(t => t.style.display = 'none');
+      document.querySelectorAll('.subnav-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabId).style.display = 'block';
+      el.classList.add('active');
+    }
+
+    function fetchAndPopulateUserAssignments(email) {
+      if (!email || email.trim() === '') return;
+
+      const roleSel = document.getElementById('revokeRoleSelect');
+      roleSel.innerHTML = `<option value="" disabled selected>Loading active assignments...</option>`;
+
+      google.script.run.withSuccessHandler(function(res) {
+        if (!res.success || !res.assignments || res.assignments.length === 0) {
+          alert(`No active organizational assignments found for employee ${email}.`);
+          roleSel.innerHTML = `<option value="" disabled selected>No active assignments found</option>`;
+          document.getElementById('revokeDeptSelect').innerHTML = `<option value="" disabled selected>No active assignments</option>`;
+          document.getElementById('revokeSubDeptSelect').innerHTML = `<option value="" disabled selected>No active assignments</option>`;
+          activeUserAssignmentList = [];
+          return;
+        }
+
+        activeUserAssignmentList = res.assignments;
+        updateRevokeRoleOptions();
+      }).withFailureHandler(function(err) {
+        alert("Error fetching user assignments: " + err.message);
+      }).getUserAssignments(email);
+    }
+
+    function updateRevokeRoleOptions() {
+      const roleSel = document.getElementById('revokeRoleSelect');
+      if (!roleSel) return;
+
+      const roles = Array.from(new Set(activeUserAssignmentList.map(a => a.role)));
+      let html = `<option value="" disabled ${roles.length > 1 ? 'selected' : ''}>-- Select Assigned Role --</option>`;
+      
+      roles.forEach(r => {
+        html += `<option value="{r}</option>`;
+      });
+
+      roleSel.innerHTML = html;
+
+      if (roles.length === 1) {
+        roleSel.value = roles[0];
+      }
+
+      updateRevokeDeptOptions();
+    }
+
+    function updateRevokeDeptOptions() {
+      const roleVal = document.getElementById('revokeRoleSelect').value;
+      const deptSel = document.getElementById('revokeDeptSelect');
+      if (!deptSel) return;
+
+      if (!roleVal) {
+        deptSel.innerHTML = `<option value="" disabled selected>Select Role first...</option>`;
+        return;
+      }
+
+      const matchingDepts = Array.from(new Set(
+        activeUserAssignmentList
+          .filter(a => a.role === roleVal)
+          .map(a => a.department)
+      ));
+
+      let html = `<option value="" disabled ${matchingDepts.length > 1 ? 'selected' : ''}>-- Select Assigned Department --</option>`;
+      matchingDepts.forEach(d => {
+        html += `<option value="{d}</option>`;
+      });
+
+      deptSel.innerHTML = html;
+
+      if (matchingDepts.length === 1) {
+        deptSel.value = matchingDepts[0];
+      }
+
+      updateRevokeSubDeptOptions();
+    }
+
+    function updateRevokeSubDeptOptions() {
+      const roleVal = document.getElementById('revokeRoleSelect').value;
+      const deptVal = document.getElementById('revokeDeptSelect').value;
+      const subDeptSel = document.getElementById('revokeSubDeptSelect');
+      if (!subDeptSel) return;
+
+      if (!roleVal || !deptVal) {
+        subDeptSel.innerHTML = `<option value="" disabled selected>Select Department first...</option>`;
+        return;
+      }
+
+      const matchingSubDepts = Array.from(new Set(
+        activeUserAssignmentList
+          .filter(a => a.role === roleVal && a.department === deptVal)
+          .map(a => a.subDepartment)
+      ));
+
+      let html = `<option value="" disabled ${matchingSubDepts.length > 1 ? 'selected' : ''}>-- Select Assigned Sub Department --</option>`;
+      matchingSubDepts.forEach(sd => {
+        html += `<option value="{sd}</option>`;
+      });
+
+      subDeptSel.innerHTML = html;
+
+      if (matchingSubDepts.length === 1) {
+        subDeptSel.value = matchingSubDepts[0];
+      }
+    }
+
+    function updateAdminSubDeptDropdown(dept) {
+      const subDeptSelect = document.getElementById('assignAdminSubDept');
+      const roleSelect = document.getElementById('assignRole');
+      if (!subDeptSelect) return;
+
+      if (roleSelect && roleSelect.value === 'Manager') {
+        subDeptSelect.innerHTML = `<option value="ALL">All Sub-Departments (Optional)</option>`;
+        subDeptSelect.disabled = true;
+        return;
+      }
+
+      subDeptSelect.disabled = false;
+      let options = [];
+      if (dept === 'HRO') {
+        options = ['Payroll', 'EDM'];
+      } else if (dept === 'Finance') {
+        options = ['Order To Cash', 'Treasury', 'Record to Report', 'Record to Pay'];
+      }
+      
+      let html = '';
+      options.forEach(s => {
+        html += `<option value="{s}</option>`;
+      });
+      subDeptSelect.innerHTML = html;
+    }
+
+    function handleUserAssignment(e) {
+      e.preventDefault();
+      const email = document.getElementById('assignEmail').value;
+      const role = document.getElementById('assignRole').value;
+      const dept = document.getElementById('assignDept').value;
+      const subDept = document.getElementById('assignAdminSubDept').value;
+
+      google.script.run.withSuccessHandler(function() {
+        alert(`Role hierarchy assigned successfully for ${email} under ${dept} -> ${subDept}.`);
+      }).assignUserHierarchy(email, role, dept, subDept, 'General');
+    }
+
+    function handleRevokeDocAccessSubmit(e) {
+      e.preventDefault();
+      const docId = document.getElementById('revokeDocId').value;
+      const email = document.getElementById('revokeSpocEmail').value;
+
+      google.script.run.withSuccessHandler(function(res) {
+        alert(`Specific document access (${res.revokedRoles.join(', ')}) revoked successfully for ${email} on document ${docId}.`);
+        document.getElementById('revokeDocId').value = '';
+        document.getElementById('revokeSpocEmail').value = '';
+      }).withFailureHandler(function(err) {
+        alert("Revocation failed: " + err.message);
+      }).revokeSpecificUserDocAccess(docId, email);
+    }
+
+    function handleRevokeUserAccessSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('revokeUserEmail').value;
+      const role = document.getElementById('revokeRoleSelect').value;
+      const dept = document.getElementById('revokeDeptSelect').value;
+      const subDept = document.getElementById('revokeSubDeptSelect').value;
+      const reason = document.getElementById('revokeReason').value;
+
+      if (!email || !role || !dept || !reason) {
+        alert("Mandatory fields missing. Please ensure Email, Role, Department, and Reason are specified.");
+        return;
+      }
+
+      if (!confirm(`Confirm revocation of assignment (${role} | ${dept} | ${subDept || 'N/A'}) for ${email}?`)) {
+        return;
+      }
+
+      google.script.run.withSuccessHandler(function(res) {
+        alert(`Assignment (${role} | ${dept} | ${subDept || 'N/A'}) successfully revoked for ${email}. Remaining assignments remain active.`);
+        document.getElementById('revokeUserEmail').value = '';
+        document.getElementById('revokeReason').value = '';
+        document.getElementById('revokeRoleSelect').innerHTML = `<option value="" disabled selected>Enter Employee Email first...</option>`;
+        document.getElementById('revokeDeptSelect').innerHTML = `<option value="" disabled selected>Select Role first...</option>`;
+        document.getElementById('revokeSubDeptSelect').innerHTML = `<option value="" disabled selected>Select Department first...</option>`;
+        activeUserAssignmentList = [];
+      }).withFailureHandler(function(err) {
+        alert("Revocation failed: " + err.message);
+      }).revokeUserAccess(email, role, dept, subDept, reason);
+    }
+
+    function loadAssignedTasks() {
+      google.script.run.withSuccessHandler(function(tasks) {
+        let html = `<h2>My Assigned Tasks</h2><div class="card"><table class="table"><thead><tr><th>Doc ID</th><th>Title</th><th>Department</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
+        if (tasks.length === 0) {
+          html += `<tr><td colspan="5" style="text-align:center; color:#64748b;">No active tasks assigned to your active role.</td></tr>`;
+        } else {
+          tasks.forEach(t => {
+            html += `<tr><td><strong>{t.Title}</td><td>{t.Status}</td><td><button class="btn btn-primary" onclick="loadDocumentDetails('${t.DocumentID}')">Open Task</button></td></tr>`;
+          });
+        }
+        html += `</tbody></table></div>`;
+        document.getElementById('appContentBody').innerHTML = html;
+      }).getUserAssignedTasks();
+    }
+
+    function loadWorkflowOverview() {
+      google.script.run.withSuccessHandler(function(list) {
+        let html = `<h2>Approval Workflow Stage Tracker</h2><div class="card"><table class="table"><thead><tr><th>Doc ID</th><th>Title</th><th>Department</th><th>Current Stage</th><th>Editor</th></tr></thead><tbody>`;
+        list.forEach(w => {
+          html += `<tr><td><strong>{w.Title}</td><td>{w.CurrentStage}</td><td>${w.Editor}</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+        document.getElementById('appContentBody').innerHTML = html;
+      }).getWorkflowStatusOverview();
+    }
+
+    function loadAiAssistant() {
+      document.getElementById('appContentBody').innerHTML = `<h2>Ask DocuCentrix AI</h2><p style="color:#64748b; font-size:0.85rem;">Gemini Pro intelligence scanning only verified SOP documents.</p>`;
+    }
+  </script>
+</body>
+</html>

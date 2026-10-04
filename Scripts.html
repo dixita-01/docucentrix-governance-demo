@@ -1,0 +1,876 @@
+<script>
+let AppState = {
+  user: null,
+  documents: [],
+  currentDocID: null,
+  currentDocVersions: [],
+  currentMasterFileID: null
+};
+let userTasksData = [];
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  initApp();
+  updateDefaultFormatNotice();
+});
+
+
+function initApp() {
+  google.script.run
+    .withSuccessHandler(data => {
+      if (!data) return;
+      AppState.user = data.user || { FullName: 'System User', Role: 'Viewer', Email: 'user@example.com' };
+     
+      if (document.getElementById('userName')) document.getElementById('userName').innerText = AppState.user.FullName || 'User';
+      if (document.getElementById('userRole')) document.getElementById('userRole').innerText = AppState.user.Role || 'Role';
+      if (document.getElementById('userDept')) document.getElementById('userDept').innerText = `${AppState.user.Department || '-'} (${AppState.user.Team || '-'})`;
+      if (document.getElementById('userAvatar')) document.getElementById('userAvatar').innerText = AppState.user.FullName ? AppState.user.FullName.charAt(0) : 'U';
+     
+      const roleSelector = document.getElementById('activeRoleSelector');
+      if (roleSelector && AppState.user.Role) {
+        roleSelector.value = AppState.user.Role;
+      }
+
+
+      const ownerInput = document.getElementById('docOwner');
+      if (ownerInput) ownerInput.value = AppState.user.Email;
+
+
+      applyRoleNavPermissions(AppState.user.Role);
+
+
+      renderDashboardMetrics(data.metrics || {}, data.health || {}, data.myTasks || {});
+      renderRecentActivity(data.recentActivity || []);
+      renderNotifications(data.notifications || []);
+      loadRepositoryData();
+      loadApprovalWorkflowData();
+    })
+    .getDashboardData();
+}
+
+
+// REAL-TIME HELPER NOTICE UPDATE FOR FILE GENERATION CHOICE
+function updateDefaultFormatNotice() {
+  const docTypeEl = document.getElementById('docType');
+  const targetFmtEl = document.getElementById('docTargetFormat');
+  const noticeEl = document.getElementById('targetFormatNotice');
+  if (!docTypeEl || !noticeEl) return;
+
+
+  const docType = docTypeEl.value;
+  const targetFmt = targetFmtEl ? targetFmtEl.value : 'AUTO';
+
+
+  if (targetFmt !== 'AUTO') {
+    let fmtName = "Google Doc (.gdoc)";
+    if (targetFmt === 'SHEET') fmtName = "Google Sheet (.gsheet)";
+    if (targetFmt === 'SLIDE') fmtName = "Google Presentation (.gslides)";
+    noticeEl.innerHTML = `ℹ️ Explicit Choice: <strong>${fmtName}</strong> workspace file will be generated for <strong>${docType}</strong>.`;
+  } else {
+    const typeStr = String(docType).toLowerCase();
+    let defaultFmt = "Google Doc (.gdoc)";
+    if (typeStr.includes('spreadsheet') || typeStr.includes('tracker')) {
+      defaultFmt = "Google Sheet (.gsheet)";
+    } else if (typeStr.includes('presentation') || typeStr.includes('slides')) {
+      defaultFmt = "Google Presentation (.gslides)";
+    }
+    noticeEl.innerHTML = `ℹ️ Auto-Default: <strong>${defaultFmt}</strong> will be generated automatically for <strong>${docType}</strong> unless changed above.`;
+  }
+}
+
+
+function applyRoleNavPermissions(role) {
+  const navUpload = document.getElementById('nav-upload');
+  const navAssigned = document.getElementById('nav-assigned');
+  const navRepository = document.getElementById('nav-repository');
+  const navApproval = document.getElementById('nav-approval');
+  const navAI = document.getElementById('nav-ai');
+  const navAdmin = document.getElementById('nav-admin');
+  const panelMyActionTasks = document.getElementById('panelMyActionTasks');
+  const panelRecentActivity = document.getElementById('panelRecentActivity');
+
+
+  if (role === 'Admin') {
+    if (navRepository) navRepository.style.display = 'none';
+    if (navAssigned) navAssigned.style.display = 'none';
+    if (navApproval) navApproval.style.display = 'none';
+    if (navUpload) navUpload.style.display = 'none';
+    if (navAI) navAI.style.display = 'none';
+    if (navAdmin) navAdmin.style.display = 'flex';
+    if (panelRecentActivity) panelRecentActivity.style.display = 'block';
+    if (panelMyActionTasks) panelMyActionTasks.style.display = 'none';
+  } else {
+    if (navRepository) navRepository.style.display = 'flex';
+    if (navAI) navAI.style.display = 'flex';
+    if (panelRecentActivity) panelRecentActivity.style.display = 'none';
+    if (panelMyActionTasks) panelMyActionTasks.style.display = (role === 'Viewer') ? 'none' : 'block';
+  }
+
+
+  if (['Manager', 'Team Lead'].includes(role)) {
+    if (navUpload) navUpload.style.display = 'flex';
+  } else if (role !== 'Admin') {
+    if (navUpload) navUpload.style.display = 'none';
+  }
+
+
+  if (['Viewer', 'Admin'].includes(role)) {
+    if (navAssigned) navAssigned.style.display = 'none';
+  } else {
+    if (navAssigned) navAssigned.style.display = 'flex';
+  }
+
+
+  if (['Team Lead', 'Manager', 'Final Approver'].includes(role)) {
+    if (navApproval) navApproval.style.display = 'flex';
+  } else if (role !== 'Admin') {
+    if (navApproval) navApproval.style.display = 'none';
+  }
+
+
+  if (['Admin', 'Manager', 'Team Lead'].includes(role)) {
+    if (navAdmin) navAdmin.style.display = 'flex';
+    populateAdminRoleDropdown(role);
+  } else if (role !== 'Admin') {
+    if (navAdmin) navAdmin.style.display = 'none';
+  }
+}
+
+
+function populateAdminRoleDropdown(activeRole) {
+  const select = document.getElementById('assignUserRole');
+  const desc = document.getElementById('adminHeaderDesc');
+  if (!select) return;
+
+
+  if (activeRole === 'Admin') {
+    select.innerHTML = `
+      <option value="Manager">Manager</option>
+      <option value="Final Approver">Final Approver</option>
+    `;
+    if (desc) desc.innerText = "Admins assign Managers and Final Approvers.";
+  } else if (activeRole === 'Manager') {
+    select.innerHTML = `<option value="Team Lead">Team Lead</option>`;
+    if (desc) desc.innerText = "Managers assign Team Leads.";
+  } else if (activeRole === 'Team Lead') {
+    select.innerHTML = `
+      <option value="Editor">Editor</option>
+      <option value="Viewer">Viewer (Team Member)</option>
+    `;
+    if (desc) desc.innerText = "Team Leads assign Editors and Viewers/Team Members.";
+  }
+}
+
+
+function handleRoleSwitch(newRole) {
+  google.script.run
+    .withSuccessHandler(res => {
+      alert(`Switched active session to ${newRole} role! Updating permissions...`);
+      initApp();
+      switchTab('dashboard');
+    })
+    .withFailureHandler(err => {
+      alert("Error switching role: " + err.message);
+    })
+    .switchActiveUserRole(newRole);
+}
+
+
+function switchTab(viewId) {
+  document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+ 
+  const targetView = document.getElementById('view-' + viewId) || document.getElementById('view' + viewId);
+  if (targetView) targetView.classList.add('active');
+ 
+  if (viewId === 'assignedTasks') {
+    loadAssignedTasks();
+  } else if (viewId === 'repository') {
+    loadRepositoryData();
+  }
+}
+
+
+function openDocTab(tabId, btnElement) {
+  document.querySelectorAll('.doc-tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-container .tab-btn').forEach(el => el.classList.remove('active'));
+ 
+  const targetTab = document.getElementById(tabId);
+  if (targetTab) targetTab.style.display = 'block';
+  if (btnElement) btnElement.classList.add('active');
+}
+
+
+function loadRepositoryData() {
+  google.script.run.withSuccessHandler(docs => {
+    AppState.documents = docs || [];
+    renderRepositoryTable(AppState.documents);
+  }).getDocuments(null);
+}
+
+
+function filterRepository() {
+  const search = document.getElementById('repoSearchInput') ? document.getElementById('repoSearchInput').value.toLowerCase() : '';
+  const dept = document.getElementById('repoDeptFilter') ? document.getElementById('repoDeptFilter').value : 'ALL';
+  const docType = document.getElementById('repoTypeFilter') ? document.getElementById('repoTypeFilter').value : 'ALL';
+  const status = document.getElementById('repoStatusFilter') ? document.getElementById('repoStatusFilter').value : 'ALL';
+
+
+  const filtered = AppState.documents.filter(d => {
+    let match = true;
+    if (search && !String(d.Title).toLowerCase().includes(search) && !String(d.DocumentID).toLowerCase().includes(search)) match = false;
+    if (dept !== 'ALL' && d.Department !== dept) match = false;
+    if (docType !== 'ALL' && d.DocumentType !== docType) match = false;
+    if (status !== 'ALL' && d.Status !== status) match = false;
+    return match;
+  });
+
+
+  renderRepositoryTable(filtered);
+}
+
+
+function renderRepositoryTable(docs) {
+  const tbody = document.querySelector('#repositoryTable tbody');
+  if (!tbody) return;
+  if (!docs || docs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:20px;">No documents accessible under your role/department.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = docs.map(d => `
+    <tr style="cursor:pointer;" onclick="openDocumentView('${d.DocumentID}')">
+      <td><strong>${d.DocumentID}</strong></td>
+      <td>${d.Title}</td>
+      <td>${d.Department} / ${d.SubDepartment}</td>
+      <td>${d.DocumentType}</td>
+      <td>${d.CurrentVersion}</td>
+      <td><span class="badge">${d.Status}</span></td>
+      <td>${d.OwnerEmail || '-'}</td>
+      <td><button class="btn btn-secondary" onclick="event.stopPropagation(); openDocumentView('${d.DocumentID}')">View</button></td>
+    </tr>
+  `).join('');
+}
+
+
+function renderDashboardMetrics(m, h, t) {
+  if (document.getElementById('m-total')) document.getElementById('m-total').innerText = m.total || 0;
+  if (document.getElementById('m-drafts')) document.getElementById('m-drafts').innerText = m.drafts || 0;
+  if (document.getElementById('m-pending')) document.getElementById('m-pending').innerText = m.pendingReviews || 0;
+  if (document.getElementById('m-published')) document.getElementById('m-published').innerText = m.published || 0;
+  if (document.getElementById('m-pendingFinal')) document.getElementById('m-pendingFinal').innerText = m.pendingFinal || 0;
+  if (document.getElementById('m-approved')) document.getElementById('m-approved').innerText = m.fullyApproved || 0;
+ 
+  if (document.getElementById('healthScoreBadge')) document.getElementById('healthScoreBadge').innerText = `Overall Health: ${h.healthyPct || 0}%`;
+  if (document.getElementById('cntHealthy')) document.getElementById('cntHealthy').innerText = h.healthy || 0;
+  if (document.getElementById('cntAttention')) document.getElementById('cntAttention').innerText = h.attention || 0;
+  if (document.getElementById('cntAction')) document.getElementById('cntAction').innerText = h.actionReq || 0;
+
+
+  const tot = ((h.healthy || 0) + (h.attention || 0) + (h.actionReq || 0)) || 1;
+  if (document.getElementById('barHealthy')) document.getElementById('barHealthy').style.width = Math.round(((h.healthy || 0)/tot)*100) + '%';
+  if (document.getElementById('barAttention')) document.getElementById('barAttention').style.width = Math.round(((h.attention || 0)/tot)*100) + '%';
+  if (document.getElementById('barAction')) document.getElementById('barAction').style.width = Math.round(((h.actionReq || 0)/tot)*100) + '%';
+
+
+  if (document.getElementById('t-review')) {
+    const rawVal = t.awaitingMyReview;
+    let safeCount = 0;
+    if (Array.isArray(rawVal)) {
+      safeCount = rawVal.length;
+    } else if (typeof rawVal === 'number') {
+      safeCount = rawVal;
+    } else if (typeof rawVal === 'string') {
+      safeCount = parseInt(rawVal, 10) || 0;
+    }
+    document.getElementById('t-review').innerText = safeCount;
+  }
+
+
+  if (document.getElementById('t-revisions')) document.getElementById('t-revisions').innerText = t.myPendingRevisions || 0;
+}
+
+
+function submitAskAIQuery() {
+  const query = document.getElementById('aiQueryText').value;
+  if (!query) {
+    alert("Please enter a question for the AI Assistant.");
+    return;
+  }
+  const box = document.getElementById('aiResponseBox');
+  const txt = document.getElementById('aiResponseText');
+  box.style.display = 'block';
+  txt.innerText = 'Analyzing approved SOP knowledge base...';
+
+
+  google.script.run
+    .withSuccessHandler(res => {
+      txt.innerText = res.answer || 'No specific match found in approved documents.';
+    })
+    .withFailureHandler(err => {
+      txt.innerText = 'Error processing query: ' + err.message;
+    })
+    .askDocuCentrixAI(query);
+}
+
+
+function loadAssignedTasks() {
+  google.script.run
+    .withSuccessHandler(tasks => {
+      userTasksData = tasks || [];
+      renderAssignedTasksTable(userTasksData);
+    })
+    .withFailureHandler(err => {
+      renderAssignedTasksTable([]);
+    })
+    .getUserAssignedTasks();
+}
+
+
+function renderAssignedTasksTable(tasks) {
+  const tbody = document.querySelector('#assignedTasksTable tbody');
+  if (!tbody) return;
+  if (!tasks || tasks.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:20px;">No pending action tasks for your current role (${AppState.user ? AppState.user.Role : 'User'}).</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = tasks.map(t => `
+    <tr style="cursor:pointer;" onclick="openDocumentView('${t.DocumentID}')">
+      <td><strong>${t.DocumentID}</strong></td>
+      <td>${t.Title}</td>
+      <td>${t.Department}</td>
+      <td>${t.DocumentType}</td>
+      <td><span class="badge" style="background: #E0F2FE; color:#0369A1;">${t.AssignmentRole}</span></td>
+      <td><span class="badge">${t.Status}</span></td>
+      <td>${t.ReviewFrequency || 'Annually'}</td>
+      <td><button class="btn btn-primary" onclick="event.stopPropagation(); openDocumentView('${t.DocumentID}')">Open</button></td>
+    </tr>
+  `).join('');
+}
+
+
+function openDocumentView(docId) {
+  if (!docId) return;
+  AppState.currentDocID = docId;
+  google.script.run.withSuccessHandler(data => {
+    if (!data || !data.doc) return;
+    const d = data.doc;
+    AppState.currentDocVersions = data.versions || [];
+    AppState.currentMasterFileID = d.CurrentFileID || '';
+
+
+    document.getElementById('dvTitle').innerText = d.Title || '-';
+    document.getElementById('dvDocID').innerText = d.DocumentID || '-';
+    document.getElementById('dvStatus').innerText = d.Status || '-';
+    document.getElementById('dvVersion').innerText = d.CurrentVersion || '-';
+    document.getElementById('dvDept').innerText = d.Department || '-';
+    document.getElementById('dvSubDept').innerText = d.SubDepartment || '-';
+    document.getElementById('dvProcess').innerText = d.Process || '-';
+    document.getElementById('dvType').innerText = d.DocumentType || '-';
+    document.getElementById('dvOwner').innerText = d.OwnerEmail || '-';
+    document.getElementById('dvEditor').innerText = d.CurrentEditorEmail || '-';
+    document.getElementById('dvEffective').innerText = d.EffectiveDate || '-';
+    document.getElementById('dvReviewFreq').innerText = d.ReviewFrequency || 'Annually';
+    document.getElementById('dvClassBadge').innerText = d.Classification || 'Internal';
+    document.getElementById('dvFileID').innerText = d.CurrentFileID || '-';
+   
+    const fileUrlBtn = document.getElementById('dvFileUrl');
+    if (fileUrlBtn && d.FileUrl) {
+      fileUrlBtn.href = d.FileUrl;
+    }
+
+
+    const dlBtn = document.getElementById('dvDownloadBtn');
+    if (dlBtn) {
+      if (d.DownloadUrl && (String(d.DocumentType).trim() === 'Template')) {
+        dlBtn.href = d.DownloadUrl;
+        dlBtn.style.display = 'inline-flex';
+      } else {
+        dlBtn.style.display = 'none';
+      }
+    }
+
+
+    const btnAudit = document.getElementById('btn-tab-audit');
+    const btnComments = document.getElementById('btn-tab-comments');
+   
+    if (AppState.user.Role === 'Viewer') {
+      if (btnAudit) btnAudit.style.display = 'none';
+      if (btnComments) btnComments.style.display = 'none';
+    } else {
+      if (btnAudit) btnAudit.style.display = 'inline-block';
+      if (btnComments) btnComments.style.display = 'inline-block';
+    }
+
+
+    renderWorkflowActions(d);
+    renderVersionHistory(AppState.currentDocVersions);
+    populateVersionCompareDropdowns(AppState.currentDocVersions);
+    renderAuditTrail(data.auditTrail || []);
+    renderComments(data.comments || []);
+   
+    openDocTab('tab-content', document.getElementById('btn-tab-content'));
+    switchTab('documentView');
+  }).withFailureHandler(err => {
+    alert("Access Restricted: " + err.message);
+  }).getDocumentDetails(docId);
+}
+
+
+function renderWorkflowActions(doc) {
+  const actionsDiv = document.getElementById('dvGlobalActions');
+  if (!actionsDiv) return;
+  let html = "";
+  const role = AppState.user.Role;
+  const status = String(doc.Status).toUpperCase();
+
+
+  if (['Manager', 'Admin'].includes(role)) {
+    html += `<button class="btn btn-secondary" onclick="openClassModal('${doc.Classification}')">⚙️ Classification</button>`;
+  }
+
+
+  if (['Team Lead', 'Manager', 'Admin'].includes(role)) {
+    html += `<button class="btn btn-secondary" onclick="openReassignModal('${doc.CurrentEditorEmail}', '${doc.CoEditors || ''}')">👥 Reassign Editor</button>`;
+  }
+
+
+  if (status === 'FINAL_APPROVED') {
+    if (['Team Lead', 'Manager'].includes(role)) {
+      html += `<button class="btn btn-warning" onclick="promptInitiateRevision()">Initiate Document Revision</button>`;
+    } else {
+      html += `<span class="badge" style="background:#E2E8F0; color:#475569;">Read-Only Mode</span>`;
+    }
+  } else {
+    if (['DRAFT', 'REVISION_REQUESTED'].includes(status) && role === 'Editor') {
+      html += `<button class="btn btn-primary" onclick="submitDraftForReview()">Submit For Level 1 Review</button>`;
+    }
+   
+    if (status === 'SUBMITTED_LEVEL_1' && role === 'Team Lead') {
+      html += `<button class="btn btn-primary" onclick="approveStep()">Approve Level 1 (Team Lead)</button>`;
+      html += `<button class="btn btn-danger" onclick="openRUModal()">Reject / Request Update</button>`;
+    }
+   
+    if (status === 'SUBMITTED_LEVEL_2' && role === 'Manager') {
+      html += `<button class="btn btn-primary" onclick="openFAModal()">Approve Level 2 (Select Final Approver)</button>`;
+      html += `<button class="btn btn-danger" onclick="openRUModal()">Reject / Request Update</button>`;
+    }
+   
+    if (status === 'PUBLISHED_PENDING_FINAL_APPROVAL' && role === 'Final Approver') {
+      html += `<button class="btn btn-primary" onclick="approveStep()">Grant Final Approval</button>`;
+      html += `<button class="btn btn-danger" onclick="openRUModal()">Reject / Request Update</button>`;
+    }
+
+
+    if (['Manager', 'Team Lead'].includes(role)) {
+      html += `<button class="btn btn-secondary" onclick="promptRollback()">Rollback Version</button>`;
+    }
+  }
+
+
+  actionsDiv.innerHTML = html;
+}
+
+
+function openClassModal(currClass) {
+  const sel = document.getElementById('newClassSelect');
+  if (sel) sel.value = currClass || 'Internal';
+  document.getElementById('changeClassModal').style.display = 'flex';
+}
+function closeClassModal() { document.getElementById('changeClassModal').style.display = 'none'; }
+
+
+function submitClassificationChange() {
+  const newClass = document.getElementById('newClassSelect').value;
+  closeClassModal();
+  google.script.run
+    .withSuccessHandler(res => {
+      alert(`Classification successfully updated to ${res.newClassification}!`);
+      openDocumentView(AppState.currentDocID);
+    })
+    .withFailureHandler(err => alert("Classification Error: " + err.message))
+    .updateDocumentClassification(AppState.currentDocID, newClass);
+}
+
+
+function openReassignModal(currEditor, currCoEditors) {
+  const pInput = document.getElementById('reassignPrimaryEmail');
+  const cInput = document.getElementById('reassignCoEditors');
+  if (pInput) pInput.value = currEditor || '';
+  if (cInput) cInput.value = currCoEditors || '';
+  document.getElementById('reassignEditorModal').style.display = 'flex';
+}
+function closeReassignModal() { document.getElementById('reassignEditorModal').style.display = 'none'; }
+
+
+function submitEditorReassignment() {
+  const newPrimary = document.getElementById('reassignPrimaryEmail').value;
+  const newCo = document.getElementById('reassignCoEditors').value;
+  if (!newPrimary) {
+    alert("Primary Editor email is required.");
+    return;
+  }
+  closeReassignModal();
+  google.script.run
+    .withSuccessHandler(res => {
+      alert(`Primary Editor successfully reassigned to ${res.newEditor}!`);
+      openDocumentView(AppState.currentDocID);
+    })
+    .withFailureHandler(err => alert("Reassignment Error: " + err.message))
+    .reassignDocumentEditor(AppState.currentDocID, newPrimary, newCo);
+}
+
+
+// HANDLE REQUEST INITIATION WITH TARGET FILE FORMAT SELECTION
+function handleDocumentRequestSubmit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btnSubmitRequest');
+  btn.disabled = true;
+  btn.innerText = "Creating Document Request...";
+
+
+  const fileInput = document.getElementById('docFileInput');
+  const targetFormatEl = document.getElementById('docTargetFormat');
+  const formData = {
+    title: document.getElementById('docTitle').value,
+    department: document.getElementById('docDept').value,
+    subDepartment: document.getElementById('docSubDept').value,
+    documentType: document.getElementById('docType').value,
+    targetFormat: targetFormatEl ? targetFormatEl.value : 'AUTO',
+    classification: document.getElementById('docClass').value,
+    editorEmail: document.getElementById('docEditorEmail').value,
+    coEditors: document.getElementById('docCoEditors').value,
+    effectiveDate: document.getElementById('docEffectiveDate').value,
+    reviewFrequency: document.getElementById('docReviewFreq').value,
+    ownerEmail: AppState.user.Email
+  };
+
+
+  if (fileInput && fileInput.files.length > 0) {
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const base64Data = evt.target.result;
+      google.script.run
+        .withSuccessHandler(res => {
+          alert(`Document request ${res.documentId} created successfully!`);
+          btn.disabled = false;
+          btn.innerText = "Initiate Document Request";
+          openDocumentView(res.documentId);
+        })
+        .withFailureHandler(err => {
+          alert("Upload Error: " + err.message);
+          btn.disabled = false;
+          btn.innerText = "Initiate Document Request";
+        })
+        .createDocumentRequest(formData, base64Data, file.name, file.type);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    google.script.run
+      .withSuccessHandler(res => {
+        alert(`Document request ${res.documentId} created successfully! Workspace ${formData.documentType} generated in Drive.`);
+        btn.disabled = false;
+        btn.innerText = "Initiate Document Request";
+        openDocumentView(res.documentId);
+      })
+      .withFailureHandler(err => {
+        alert("Creation Error: " + err.message);
+        btn.disabled = false;
+        btn.innerText = "Initiate Document Request";
+      })
+      .createDocumentRequest(formData, null, null, null);
+  }
+}
+
+
+function promptRollback() {
+  const targetVer = prompt("Enter target published version number to rollback to (e.g., v1.0):");
+  if (targetVer) {
+    google.script.run.withSuccessHandler(res => {
+      alert('Rollback initialized as new draft version: ' + res.newVersion);
+      openDocumentView(AppState.currentDocID);
+    }).initiateRollback(AppState.currentDocID, targetVer);
+  }
+}
+
+
+function openRUModal() { document.getElementById('requestUpdateModal').style.display = 'flex'; }
+function closeRUModal() { document.getElementById('requestUpdateModal').style.display = 'none'; }
+
+
+function submitRejectionWithComments() {
+  const section = document.getElementById('ruSection').value;
+  const reason = document.getElementById('ruReason').value;
+  const comments = document.getElementById('ruComments').value;
+
+
+  if (!section || !reason || !comments) {
+    alert("Section, Reason, and Detailed Comments are required for rejection.");
+    return;
+  }
+
+
+  closeRUModal();
+  google.script.run
+    .withSuccessHandler(res => {
+      alert("Rejection submitted. Editor notified with required comments.");
+      openDocumentView(AppState.currentDocID);
+    })
+    .withFailureHandler(err => {
+      alert("Rejection Error: " + err.message);
+    })
+    .processWorkflowApproval(AppState.currentDocID, 'REQUEST_UPDATE', comments, reason, section, null);
+}
+
+
+function openFAModal() { document.getElementById('selectFinalApproverModal').style.display = 'flex'; }
+function closeFAModal() { document.getElementById('selectFinalApproverModal').style.display = 'none'; }
+
+
+function submitManagerApprovalWithFA() {
+  const faEmail = document.getElementById('faSelectEmail').value;
+  if (!faEmail) {
+    alert("Please enter a valid Final Approver Email.");
+    return;
+  }
+  closeFAModal();
+  google.script.run.withSuccessHandler(res => {
+    alert("Level 2 Manager Approval granted!");
+    openDocumentView(AppState.currentDocID);
+  }).processWorkflowApproval(AppState.currentDocID, 'APPROVE', '', '', '', faEmail);
+}
+
+
+function approveStep() {
+  google.script.run.withSuccessHandler(res => {
+    alert("Approval Step Processed. New Status: " + res.newStatus);
+    openDocumentView(AppState.currentDocID);
+  }).processWorkflowApproval(AppState.currentDocID, 'APPROVE', '', '', '', null);
+}
+
+
+function submitDraftForReview() {
+  const summary = prompt("Enter change summary for this submission:", "Draft Ready for Review");
+  if (summary === null) return;
+  google.script.run.withSuccessHandler(res => {
+    alert('Submitted successfully for Level 1 Team Lead Review!');
+    openDocumentView(AppState.currentDocID);
+  }).submitForReview(AppState.currentDocID, summary, null, null, null);
+}
+
+
+function populateVersionCompareDropdowns(versions) {
+  const selectA = document.getElementById('compareVerA');
+  const selectB = document.getElementById('compareVerB');
+  if (!selectA || !selectB) return;
+
+
+  const options = versions.map(v => `<option value="${v.VersionNumber}">${v.VersionNumber} (${v.Status || 'DRAFT'})</option>`).join('');
+  selectA.innerHTML = options;
+  selectB.innerHTML = options;
+
+
+  if (versions.length >= 2) {
+    selectA.selectedIndex = 0;
+    selectB.selectedIndex = versions.length - 1;
+  }
+}
+
+
+function executeVersionComparison() {
+  const rawA = document.getElementById('compareVerA') ? document.getElementById('compareVerA').value : '';
+  const rawB = document.getElementById('compareVerB') ? document.getElementById('compareVerB').value : '';
+  const resDiv = document.getElementById('compareResult');
+
+
+  const verA = String(rawA).split(' ')[0].trim();
+  const verB = String(rawB).split(' ')[0].trim();
+
+
+  if (!verA || !verB || verA === verB) {
+    alert("Please select two different versions to compare.");
+    return;
+  }
+
+
+  const history = AppState.currentDocVersions || [];
+  const localA = history.find(v => String(v.VersionNumber).trim() === verA) || history[0] || {};
+  const localB = history.find(v => String(v.VersionNumber).trim() === verB) || history[history.length - 1] || {};
+
+
+  if (resDiv) {
+    resDiv.style.display = 'block';
+    resDiv.innerHTML = `
+      <h5 style="margin:0 0 10px 0; color:var(--primary);">Comparison: ${verA} vs ${verB}</h5>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem; margin-bottom:10px;">
+        <div style="padding:8px; background:#F8FAFC; border:1px solid var(--border); border-radius:4px;">
+          <strong>Version ${verA}</strong><br>
+          Uploaded By: ${localA.UploadedBy || 'Author'}<br>
+          Date: ${formatDateTime(localA.UploadedAt)}<br>
+          Change Note: ${localA.ChangeSummary || 'N/A'}
+        </div>
+        <div style="padding:8px; background:#F0F9FF; border:1px solid var(--border); border-radius:4px;">
+          <strong>Version ${verB}</strong><br>
+          Uploaded By: ${localB.UploadedBy || 'Author'}<br>
+          Date: ${formatDateTime(localB.UploadedAt)}<br>
+          Change Note: ${localB.ChangeSummary || 'N/A'}
+        </div>
+      </div>
+      <strong>Identified Changes & Governance Notes:</strong>
+      <ul style="margin:5px 0 0 15px; font-size:0.85rem; color:var(--text-muted);">
+        <li>Version ${verA} created on ${formatDateTime(localA.UploadedAt)} (${localA.Status || 'DRAFT'}). Summary: "${localA.ChangeSummary || 'Initial Version'}"</li>
+        <li>Version ${verB} created on ${formatDateTime(localB.UploadedAt)} (${localB.Status || 'DRAFT'}). Summary: "${localB.ChangeSummary || 'Updated Version'}"</li>
+      </ul>
+    `;
+  }
+
+
+  google.script.run.withSuccessHandler(data => {
+    if (!data || !resDiv) return;
+    resDiv.style.display = 'block';
+    resDiv.innerHTML = `
+      <h5 style="margin:0 0 10px 0; color:var(--primary);">Comparison: ${data.versionA.versionNumber} vs ${data.versionB.versionNumber}</h5>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem; margin-bottom:10px;">
+        <div style="padding:8px; background:#F8FAFC; border:1px solid var(--border); border-radius:4px;">
+          <strong>Version ${data.versionA.versionNumber} (${data.versionA.status})</strong><br>
+          Uploaded By: ${data.versionA.uploadedBy}<br>
+          Date: ${formatDateTime(data.versionA.uploadedAt)}<br>
+          Change Note: ${data.versionA.changeSummary}
+        </div>
+        <div style="padding:8px; background:#F0F9FF; border:1px solid var(--border); border-radius:4px;">
+          <strong>Version ${data.versionB.versionNumber} (${data.versionB.status})</strong><br>
+          Uploaded By: ${data.versionB.uploadedBy}<br>
+          Date: ${formatDateTime(data.versionB.uploadedAt)}<br>
+          Change Note: ${data.versionB.changeSummary}
+        </div>
+      </div>
+      <strong>Identified Changes & Governance Notes:</strong>
+      <ul style="margin:5px 0 0 15px; font-size:0.85rem; color:var(--text-muted);">
+        ${data.differences.map(d => `<li>${d}</li>`).join('')}
+      </ul>
+    `;
+  }).compareDocumentVersions(AppState.currentDocID, verA, verB);
+}
+
+
+function renderVersionHistory(versions) {
+  const tbody = document.querySelector('#versionHistoryTable tbody');
+  if (!tbody) return;
+  if (!versions || versions.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:15px;">No version history records found.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = versions.map(v => `
+    <tr>
+      <td><strong>${v.VersionNumber}</strong></td>
+      <td>${v.UploadedBy || '-'}</td>
+      <td>${formatDateTime(v.UploadedAt)}</td>
+      <td>${v.ChangeSummary || 'Workspace Update'}</td>
+      <td><span class="badge">${v.Status || 'DRAFT'}</span></td>
+      <td>
+        <button class="btn btn-secondary" onclick="viewSpecificVersionFile('${v.DriveFileID}', '${v.VersionNumber}', '${v.Status}')">
+          📄 View ${v.VersionNumber}
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+
+function viewSpecificVersionFile(driveFileId, versionNumber, status) {
+  let activeId = driveFileId;
+  if (!activeId || activeId === '-' || activeId.toUpperCase().includes('SAMPLE')) {
+    activeId = AppState.currentMasterFileID;
+  }
+
+
+  if (!activeId || activeId === '-' || activeId.toUpperCase().includes('SAMPLE')) {
+    alert(`File reference for version ${versionNumber} is unavailable.`);
+    return;
+  }
+
+
+  const isViewer = AppState.user.Role === 'Viewer';
+  const isApproved = ['FINAL_APPROVED', 'PUBLISHED'].includes(String(status).toUpperCase());
+ 
+  let targetUrl = `https://docs.google.com/document/d/${activeId}/edit`;
+  if (isViewer || isApproved) {
+    targetUrl = `https://drive.google.com/file/d/${activeId}/preview`;
+  }
+
+
+  window.open(targetUrl, '_blank');
+}
+
+
+function renderRecentActivity(activity) {
+  const tbody = document.querySelector('#recentActivityTable tbody');
+  if (!tbody) return;
+  if (!activity || activity.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:15px;">No recent system activity found.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = activity.map(a => `
+    <tr style="cursor:pointer;" onclick="openDocumentView('${a.DocumentID}')">
+      <td><strong>${a.DocumentID}</strong></td>
+      <td><span class="badge">${a.Action}</span></td>
+      <td>${a.PerformedBy}</td>
+      <td>${a.Role}</td>
+      <td>${formatDateTime(a.Timestamp)}</td>
+    </tr>
+  `).join('');
+}
+
+
+function renderNotifications(notifs) {
+  const badge = document.getElementById('notifCount');
+  if (badge) badge.innerText = notifs ? notifs.length : 0;
+  const container = document.getElementById('dashboardNotifList');
+  if (!container) return;
+  if (!notifs || notifs.length === 0) {
+    container.innerHTML = `<p style="font-size:0.85rem; color:var(--text-muted); padding:10px 0;">No pending notifications.</p>`;
+    return;
+  }
+  container.innerHTML = notifs.map(n => `
+    <div class="notif-item" style="padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="openDocumentView('${n.LinkDocumentID}')">
+      <strong>${n.Title}</strong>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin:3px 0 0 0;">${n.Message}</p>
+    </div>
+  `).join('');
+}
+
+
+function renderAuditTrail(logs) {
+  const tbody = document.querySelector('#auditTrailTable tbody');
+  if (!tbody) return;
+  tbody.innerHTML = logs.map(l => `
+    <tr>
+      <td>${l.AuditID}</td>
+      <td><span class="badge">${l.Action}</span></td>
+      <td>${l.PerformedBy}</td>
+      <td>${l.Role}</td>
+      <td>${formatDateTime(l.Timestamp)}</td>
+      <td>${l.Comments}</td>
+    </tr>
+  `).join('');
+}
+
+
+function renderComments(comments) {
+  const div = document.getElementById('commentsList');
+  if (!div) return;
+  div.innerHTML = comments.map(c => `
+    <div class="panel" style="margin-bottom:10px; padding:10px; border:1px solid var(--border); border-radius:6px;">
+      <strong>Section: ${c.Section}</strong> (Ver: ${c.VersionNumber}) <em>${c.UserEmail}</em>
+      <p style="margin-top:5px;">${c.CommentText}</p>
+    </div>
+  `).join('');
+}
+
+
+function formatDateTime(isoString) {
+  if (!isoString) return '-';
+  const dt = new Date(isoString);
+  return isNaN(dt.getTime()) ? isoString : dt.toLocaleString();
+}
+</script>

@@ -1,0 +1,107 @@
+<div class="upload-wrapper">
+  <div class="page-header" style="margin-bottom:20px;">
+    <h1 style="color:var(--primary); margin:0 0 5px 0;">Initiate Governance Request</h1>
+    <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Create a new Google Doc, Sheet, Slide Presentation, or upload an existing file.</p>
+  </div>
+
+  <div class="panel" style="max-width:700px; background:#fff; padding:25px; border-radius:8px; border:1px solid var(--border);">
+    <form onsubmit="handleDocumentRequestSubmit(event)">
+      <div class="form-group" style="margin-bottom:15px;">
+        <label style="display:block; font-weight:bold; margin-bottom:5px;">Document Title *</label>
+        <input type="text" id="docTitle" required placeholder="e.g., Contractor Onboarding SOP / Finance Tracker" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:4px;">
+      </div>
+
+      <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+        <div>
+          <label style="display:block; font-weight:bold; margin-bottom:5px;">Department *</label>
+          <select id="docDept" required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:4px;">
+            <option value="DDS">DDS</option>
+            <option value="HRO">HRO</option>
+            <option value="Finance">Finance</option>
+            <option value="Procurement">Procurement</option>
+            <option value="Engineering">Engineering</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block; font-weight:bold; margin-bottom:5px;">Sub Department</label>
+          <input type="text" id="docSubDept" placeholder="e.g., Architecture / Talent Acquisition" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:4px;">
+        </div>
+      </div>
+
+      <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+        <div>
+          <label style="display:block; font-weight:bold; margin-bottom:5px;">Governance Document Category *</label>
+          <select id="docType" required onchange="updateDefaultFormatNotice()" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:4px;">
+            <option value="SOP">SOP</option>
+            <option value="Spreadsheet / Tracker">Spreadsheet / Tracker</option>
+            <option value="Presentation / Slides">Presentation / Slides</option>
+            <option value="Template">Template</option>
+            <option value="Checklist">Checklist</option>
+            <option value="Work Instruction">Work Instruction</option>
+            <option value="Policy">Policy</option>
+            <option value="Guideline">Guideline</option>
+          </select>
+        </div>
+        <div>
+          <!-- OPTIONAL EXPLICIT FILE FORMAT SELECTION -->
+          <label style="display:block; font-weight:bold; margin-bottom:5px;">Target Output File Format (Optional)</label>
+          <select id="docTargetFormat" onchange="updateDefaultFormatNotice()" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:4px;">
+            <option value="AUTO">Auto-Default (Smart Choice)</option>
+            <option value="DOC">Google Doc (.gdoc)</option>
+            <option value="SHEET">Google Sheet (.gsheet)</option>
+            <option value="SLIDE">Google Presentation (.gslides)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- DYNAMIC USER GUIDANCE NOTICE -->
+      <div id="targetFormatNotice" style="padding:10px; background:#F0F9FF; border:1px solid #0369A1; border-radius:4px; font-size:0.85rem; color:#0369A1; margin-bottom:15px;">
+        ℹ️ Default File Format: <strong>Google Doc</strong> will be generated automatically for SOP.
+      </div>
+
+      <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+        <div>
+          <label style="display:block; font-weight:bold; margin-bottom:5px;">Classification *</label>
+          <select id="docClass" required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:4px;">
+            <option value="Internal">Internal</option>
+            <option value="Confidential">Confidential (Manager Approval)</option>
+            <option value="Public">Public</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block; font-weight:bold; margin-bottom:5px;">Primary Editor Email *</label>
+          <input type="email" id="docEditorEmail" required placeholder="primary.editor@example.com" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:4px;">
+        </div>
+      </div>
+
+      <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+        <div>
+          <label style="display:block; font-weight:bold; margin-bottom:5px;">Co-Editors (Optional)</label>
+          <input type="text" id="docCoEditors" placeholder="coeditor1@example.com, coeditor2@example.com" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:4px;">
+        </div>
+        <div>
+          <label style="display:block; font-weight:bold; margin-bottom:5px;">Effective Date *</label>
+          <input type="date" id="docEffectiveDate" required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:4px;">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:15px;">
+        <label style="display:block; font-weight:bold; margin-bottom:5px;">Review Frequency *</label>
+        <select id="docReviewFreq" required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:4px;">
+          <option value="Monthly">Monthly</option>
+          <option value="Quarterly">Quarterly</option>
+          <option value="Half-Yearly">Half-Yearly</option>
+          <option value="Annually" selected>Annually</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom:20px;">
+        <label style="display:block; font-weight:bold; margin-bottom:5px;">Attach File (Optional PDF, DOCX, XLSX, PPTX)</label>
+        <input type="file" id="docFileInput" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px; background:#F8FAFC;">
+        <small style="color:var(--text-muted); display:block; margin-top:4px;">If a file is attached, it overrides workspace file generation.</small>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="btnSubmitRequest" style="padding:12px 25px;">Initiate Document Request</button>
+    </form>
+  </div>
+</div>

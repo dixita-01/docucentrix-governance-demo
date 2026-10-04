@@ -1,0 +1,21 @@
+{
+  "_note": "Synthetic demo data only. Each key is a tab in the Google Sheet; field names are the column headers.",
+  "Users": [
+    { "UserID": "USR-100001", "Email": "admin@example.com",          "FullName": "Demo Admin",      "Role": "Admin",          "Department": "Finance", "SubDepartment": "Treasury",      "Team": "Core",  "AssignedBy": "system",              "Status": "ACTIVE" },
+    { "UserID": "USR-100002", "Email": "manager@example.com",        "FullName": "Demo Manager",    "Role": "Manager",        "Department": "Finance", "SubDepartment": "Treasury",      "Team": "Core",  "AssignedBy": "admin@example.com",   "Status": "ACTIVE" },
+    { "UserID": "USR-100003", "Email": "teamlead@example.com",       "FullName": "Demo Team Lead",  "Role": "Team Lead",      "Department": "Finance", "SubDepartment": "Treasury",      "Team": "Core",  "AssignedBy": "manager@example.com", "Status": "ACTIVE" },
+    { "UserID": "USR-100004", "Email": "primary.editor@example.com", "FullName": "Demo Editor",     "Role": "Editor",         "Department": "Finance", "SubDepartment": "Treasury",      "Team": "Core",  "AssignedBy": "teamlead@example.com","Status": "ACTIVE" },
+    { "UserID": "USR-100005", "Email": "final.approver@example.com", "FullName": "Demo Approver",   "Role": "Final Approver", "Department": "Finance", "SubDepartment": "Treasury",      "Team": "Core",  "AssignedBy": "manager@example.com", "Status": "ACTIVE" },
+    { "UserID": "USR-100006", "Email": "viewer@example.com",         "FullName": "Demo Viewer",     "Role": "Viewer",         "Department": "HRO",     "SubDepartment": "Payroll",       "Team": "Ops",   "AssignedBy": "teamlead@example.com","Status": "ACTIVE" }
+  ],
+  "Documents": [
+    { "DocumentID": "DOC-0001", "Title": "Sample Cash Reconciliation SOP", "Department": "Finance", "SubDepartment": "Treasury", "Process": "Reconciliation", "DocumentType": "SOP", "OwnerEmail": "manager@example.com", "CurrentEditorEmail": "primary.editor@example.com", "CoEditors": "", "Classification": "Internal", "RelatedProcess": "", "EffectiveDate": "2026-10-01", "ReviewFrequency": "Annual", "FinalApproverEmail": "final.approver@example.com", "FinalApprovalType": "SINGLE", "FinalApprovalConfig": "", "CurrentStageIndex": 0, "CurrentVersion": "v1.0", "Status": "SUBMITTED_LEVEL_1", "DriveFolderID": "DUMMY_FOLDER_ID", "CurrentFileID": "DUMMY_FILE_ID", "CreatedAt": "2026-09-01T09:30:00Z", "UpdatedAt": "2026-09-02T10:12:00Z", "HealthScore": "50%" },
+    { "DocumentID": "DOC-0002", "Title": "Sample Payroll Cut-off Guideline", "Department": "HRO", "SubDepartment": "Payroll", "Process": "Payroll Run", "DocumentType": "SOP", "OwnerEmail": "manager@example.com", "CurrentEditorEmail": "primary.editor@example.com", "CoEditors": "", "Classification": "Public", "RelatedProcess": "", "EffectiveDate": "2026-08-25", "ReviewFrequency": "Quarterly", "FinalApproverEmail": "final.approver@example.com", "FinalApprovalType": "SINGLE", "FinalApprovalConfig": "", "CurrentStageIndex": 0, "CurrentVersion": "v2.0", "Status": "FINAL_APPROVED", "DriveFolderID": "DUMMY_FOLDER_ID", "CurrentFileID": "DUMMY_FILE_ID", "CreatedAt": "2026-08-20T14:05:00Z", "UpdatedAt": "2026-08-25T16:40:00Z", "HealthScore": "90%" }
+  ],
+  "Versions": [
+    { "VersionID": "VER-1756719000000", "DocumentID": "DOC-0001", "VersionNumber": "v1.0", "DriveFileID": "DUMMY_FILE_ID", "ChangeSummary": "Initial Workspace SOP Created & Auto-Indexed", "UploadedBy": "primary.editor@example.com", "UploadedAt": "2026-09-01T09:30:00Z", "Status": "DRAFT" }
+  ],
+  "AuditLogs": [],
+  "Comments": [],
+  "Notifications": []
+}

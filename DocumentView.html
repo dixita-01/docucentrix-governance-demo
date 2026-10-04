@@ -1,0 +1,186 @@
+<div class="doc-view-wrapper">
+  <div id="governanceWarningBanner" class="warning-banner style-amber" style="display:none; padding:12px; margin-bottom:15px; border-radius:6px; background:#FEF3C7; border:1px solid #F59E0B;">
+    <div class="banner-text">
+      <strong>Final Approver Review Pending</strong><br>
+      This document has been published following Manager approval. Final governance validation is pending.
+    </div>
+  </div>
+
+  <div class="doc-header-card" style="background:#fff; padding:20px; border-radius:8px; border:1px solid var(--border); margin-bottom:20px;">
+    <div class="doc-title-bar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+      <div>
+        <h1 id="dvTitle" style="font-size:1.5rem; color:var(--primary); margin:0;">Document Title</h1>
+        <div class="doc-sub-badges" style="display:flex; gap:10px; margin-top:5px; align-items:center;">
+          <span class="badge" id="dvDocID">DOC-000000</span>
+          <span class="badge" id="dvStatus">DRAFT</span>
+          <span class="badge" id="dvVersion">v1.0</span>
+          <span class="badge" id="dvClassBadge" style="background:#E0F2FE; color:#0369A1;">Internal</span>
+        </div>
+      </div>
+      <div class="doc-actions" id="dvGlobalActions" style="display:flex; gap:10px;"></div>
+    </div>
+
+    <div class="meta-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; font-size:0.9rem;">
+      <div><strong>Department:</strong> <span id="dvDept">-</span></div>
+      <div><strong>Sub Department:</strong> <span id="dvSubDept">-</span></div>
+      <div><strong>Process:</strong> <span id="dvProcess">-</span></div>
+      <div><strong>Type:</strong> <span id="dvType">-</span></div>
+      <div><strong>Document Owner:</strong> <span id="dvOwner">-</span></div>
+      <div><strong>Primary Editor:</strong> <span id="dvEditor">-</span></div>
+      <div><strong>Effective Date:</strong> <span id="dvEffective">-</span></div>
+      <div><strong>Review Frequency:</strong> <span id="dvReviewFreq">-</span></div>
+    </div>
+  </div>
+
+  <div class="tab-container" style="background:#fff; padding:20px; border-radius:8px; border:1px solid var(--border);">
+    <div class="tab-buttons" style="display:flex; gap:10px; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:20px;">
+      <button class="tab-btn btn btn-secondary active" id="btn-tab-content" onclick="openDocTab('tab-content', this)">Content & File</button>
+      <button class="tab-btn btn btn-secondary" id="btn-tab-versions" onclick="openDocTab('tab-versions', this)">Version History & Comparison</button>
+      <button class="tab-btn btn btn-secondary" id="btn-tab-audit" onclick="openDocTab('tab-audit', this)">Audit Trail</button>
+      <button class="tab-btn btn btn-secondary" id="btn-tab-comments" onclick="openDocTab('tab-comments', this)">Revision Comments</button>
+    </div>
+
+    <div id="tab-content" class="doc-tab-content active" style="display:block;">
+      <div class="file-preview-card" style="padding:15px; background:#F8FAFC; border:1px solid var(--border); border-radius:6px;">
+        <h3>Master Workspace Document / Attachment</h3>
+        <p style="margin:10px 0;">Drive File ID: <strong id="dvFileID">-</strong></p>
+        <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap;">
+          <a id="dvFileUrl" href="#" target="_blank" class="btn btn-primary" style="text-decoration:none; display:inline-flex; align-items:center;">
+            📄 View Document (Inline Preview Mode)
+          </a>
+          <!-- TEMPLATE DIRECT DOWNLOAD BUTTON FOR VIEWERS -->
+          <a id="dvDownloadBtn" href="#" target="_blank" class="btn btn-secondary" style="display:none; text-decoration:none; background:#10B981; color:#fff; border:none;">
+            📥 Download Template
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-versions" class="doc-tab-content" style="display:none;">
+      <div class="version-compare-box" style="margin-bottom:20px; padding:15px; background:#F1F5F9; border-radius:6px; border:1px solid var(--border);">
+        <h4 style="margin:0 0 10px 0; color:var(--primary);">Version Comparison Tool (e.g., v1.0 vs v2.0)</h4>
+        <div style="display:flex; gap:15px; align-items:center;">
+          <select id="compareVerA" style="padding:8px; border-radius:4px; border:1px solid var(--border);"></select>
+          <span>VS</span>
+          <select id="compareVerB" style="padding:8px; border-radius:4px; border:1px solid var(--border);"></select>
+          <button class="btn btn-primary" onclick="executeVersionComparison()">Compare Versions</button>
+        </div>
+        <div id="compareResult" style="display:none; margin-top:15px; padding:12px; background:#fff; border-radius:4px; border:1px solid var(--border);"></div>
+      </div>
+
+      <table class="data-table" id="versionHistoryTable">
+        <thead>
+          <tr>
+            <th>Version</th>
+            <th>Uploaded By</th>
+            <th>Date & Time</th>
+            <th>Change Summary</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="tab-audit" class="doc-tab-content" style="display:none;">
+      <table class="data-table" id="auditTrailTable">
+        <thead>
+          <tr>
+            <th>Audit ID</th>
+            <th>Action</th>
+            <th>Performed By</th>
+            <th>Role</th>
+            <th>Timestamp (Date & Time)</th>
+            <th>Details / Governance Notes</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="tab-comments" class="doc-tab-content" style="display:none;">
+      <div id="commentsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Rejection / Request Update -->
+<div id="requestUpdateModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000;">
+  <div class="modal-content" style="background:#fff; padding:25px; border-radius:8px; max-width:500px; width:90%;">
+    <h2 style="margin-top:0; color:#DC2626;">Reject Document / Request Revision</h2>
+    <p style="font-size:0.85rem; color:var(--text-muted);">Provide mandatory feedback for the Primary Editor.</p>
+    <div class="form-group" style="margin-top:10px;">
+      <label style="display:block; margin-bottom:5px; font-weight:bold;">Section Requiring Revision *</label>
+      <input type="text" id="ruSection" required placeholder="e.g., Section 3.1 Security Checklist" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px;">
+    </div>
+    <div class="form-group" style="margin-top:10px;">
+      <label style="display:block; margin-bottom:5px; font-weight:bold;">Reason For Rejection *</label>
+      <input type="text" id="ruReason" required placeholder="e.g., Non-compliant policy language" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px;">
+    </div>
+    <div class="form-group" style="margin-top:10px;">
+      <label style="display:block; margin-bottom:5px; font-weight:bold;">Detailed Comments *</label>
+      <textarea id="ruComments" rows="4" required placeholder="Describe required updates in detail..." style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px;"></textarea>
+    </div>
+    <div class="form-actions" style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeRUModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="submitRejectionWithComments()">Submit Rejection</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Final Approver Selection -->
+<div id="selectFinalApproverModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000;">
+  <div class="modal-content" style="background:#fff; padding:25px; border-radius:8px; max-width:450px; width:90%;">
+    <h3 style="margin-top:0;">Select Final Approver</h3>
+    <p style="font-size:0.85rem; color:var(--text-muted);">Manager must designate a Final Approver before sending for Level 3 review.</p>
+    <div class="form-group" style="margin-top:15px;">
+      <label style="display:block; margin-bottom:5px; font-weight:bold;">Final Approver Email *</label>
+      <input type="email" id="faSelectEmail" required placeholder="final.approver@example.com" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px;">
+    </div>
+    <div class="form-actions" style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeFAModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitManagerApprovalWithFA()">Approve & Assign Final Approver</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Manager Classification Change -->
+<div id="changeClassModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000;">
+  <div class="modal-content" style="background:#fff; padding:25px; border-radius:8px; max-width:400px; width:90%;">
+    <h3 style="margin-top:0; color:var(--primary);">Update Classification</h3>
+    <p style="font-size:0.85rem; color:var(--text-muted);">Managers can modify document security classification at any stage.</p>
+    <div class="form-group" style="margin-top:15px;">
+      <label style="display:block; margin-bottom:5px; font-weight:bold;">Classification *</label>
+      <select id="newClassSelect" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px;">
+        <option value="Internal">Internal</option>
+        <option value="Confidential">Confidential</option>
+        <option value="Public">Public</option>
+      </select>
+    </div>
+    <div class="form-actions" style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeClassModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitClassificationChange()">Update Classification</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Team Lead Editor Reassignment -->
+<div id="reassignEditorModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000;">
+  <div class="modal-content" style="background:#fff; padding:25px; border-radius:8px; max-width:450px; width:90%;">
+    <h3 style="margin-top:0; color:var(--primary);">Reassign Document Editors</h3>
+    <p style="font-size:0.85rem; color:var(--text-muted);">Team Leads can change or reassign editors at any stage.</p>
+    <div class="form-group" style="margin-top:15px;">
+      <label style="display:block; margin-bottom:5px; font-weight:bold;">Primary Editor Email *</label>
+      <input type="email" id="reassignPrimaryEmail" required style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px;">
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label style="display:block; margin-bottom:5px; font-weight:bold;">Co-Editors (Comma Separated)</label>
+      <input type="text" id="reassignCoEditors" placeholder="coeditor1@example.com, coeditor2@example.com" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px;">
+    </div>
+    <div class="form-actions" style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeReassignModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEditorReassignment()">Reassign Editors</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,58 @@
+<div class="repository-wrapper">
+  <div class="page-header" style="margin-bottom:20px;">
+    <h1 style="color:var(--primary); margin:0 0 5px 0;">Document Repository</h1>
+    <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Controlled document master repository with structured hierarchy filters.</p>
+  </div>
+
+  <!-- Repository Hierarchy Filters connected directly to JS handlers -->
+  <div class="filter-bar" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; background:#fff; padding:15px; border-radius:8px; border:1px solid var(--border);">
+    <input type="text" id="repoSearchInput" onkeyup="filterRepository()" placeholder="Filter by title/ID..." style="padding:8px; border:1px solid var(--border); border-radius:4px; min-width:200px;">
+   
+    <select id="repoDeptFilter" onchange="filterRepository()" style="padding:8px; border:1px solid var(--border); border-radius:4px;">
+      <option value="ALL">All Departments</option>
+      <option value="DDS">DDS</option>
+      <option value="HRO">HRO</option>
+      <option value="Finance">Finance</option>
+      <option value="Procurement">Procurement</option>
+      <option value="Engineering">Engineering</option>
+    </select>
+
+    <select id="repoTypeFilter" onchange="filterRepository()" style="padding:8px; border:1px solid var(--border); border-radius:4px;">
+      <option value="ALL">All Document Types</option>
+      <option value="SOP">SOP</option>
+      <option value="Checklist">Checklist</option>
+      <option value="Template">Template</option>
+      <option value="Work Instruction">Work Instruction</option>
+      <option value="Policy">Policy</option>
+      <option value="Guideline">Guideline</option>
+    </select>
+
+    <select id="repoStatusFilter" onchange="filterRepository()" style="padding:8px; border:1px solid var(--border); border-radius:4px;">
+      <option value="ALL">All Statuses</option>
+      <option value="DRAFT">DRAFT</option>
+      <option value="SUBMITTED_LEVEL_1">SUBMITTED_LEVEL_1</option>
+      <option value="SUBMITTED_LEVEL_2">SUBMITTED_LEVEL_2</option>
+      <option value="PUBLISHED_PENDING_FINAL_APPROVAL">PUBLISHED_PENDING_FINAL_APPROVAL</option>
+      <option value="FINAL_APPROVED">FINAL_APPROVED</option>
+      <option value="REVISION_REQUESTED">REVISION_REQUESTED</option>
+    </select>
+  </div>
+
+  <div class="table-container" style="background:#fff; padding:20px; border-radius:8px; border:1px solid var(--border);">
+    <table class="data-table" id="repositoryTable">
+      <thead>
+        <tr>
+          <th>Doc ID</th>
+          <th>Title</th>
+          <th>Dept / Sub Dept</th>
+          <th>Type</th>
+          <th>Ver</th>
+          <th>Status</th>
+          <th>Owner</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
